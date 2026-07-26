@@ -12,7 +12,8 @@
 - **Cari İşlem Timeline'ı** — her cari için işlem geçmişi dikey zaman çizelgesinde; hızlı aşama ilerletme ve **not/işlem ekleme**.
 - **Aşama (Milestone) Takibi** — projelere aşama tanımlama; durum değiştikçe **log** ve **bildirim** üretimi.
 - **Bildirim Altyapısı** — in-app + **e-posta simülasyonu** (PENDING → SENT → READ). Aşama/durum değişiminde ilgili carilere otomatik bildirim.
-- **Raporlama** — **Cari Satış Hunisi** (Gelen / Bilgi Verilen / Dönüş Yapılan / Potansiyele Dönüşen) Günlük/Haftalık/Aylık; işlem geçmişi filtreleme (tip + dönem); dashboard istatistik kartları ve grafikler (MUI X Charts).
+- **Raporlama** — **Cari Satış Hunisi** (Gelen / Bilgi Verilen / Dönüş Yapılan / Potansiyele Dönüşen) Günlük/Haftalık/Aylık; şirket bazında kırılım; işlem geçmişi filtreleme (tip + dönem); dashboard istatistik kartları ve grafikler (MUI X Charts).
+- **PDF / CSV Dışa Aktarım** — kapsamlı raporun tek tıkla indirilmesi. PDF'te Türkçe karakter desteği için gömülü font (`public/fonts/LiberationSans`), tablo düzeni jsPDF + autoTable ile.
 - **UI/UX** — dark/light mod, sidebar'lı responsive layout, MUI DataGrid, drawer tabanlı formlar.
 
 ### Örnek giriş bilgileri (seed sonrası)

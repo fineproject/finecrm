@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import type { ActivityRow } from '@/types/dto'
 import type { ActivityType, CariStage, ProjectStatus } from '@prisma/client'
+import { ACTIVITY_TYPE, CARI_STAGE, PROJECT_STATUS } from '@/lib/labels'
 
 // ---- Tarih yardımcıları ----
 function startOfDay(d = new Date()) {
@@ -177,6 +178,98 @@ export async function getCariFunnelReport(): Promise<FunnelMetric[]> {
       return { key: d.key, label: d.label, day, week, month }
     }),
   )
+}
+
+// Tek seferde tüm rapor bölümlerini (özet, kırılımlar, huni) toplar.
+// PDF/CSV dışa aktarımı ve rapor sayfası bu veriyi kullanır.
+export interface ReportData {
+  totals: {
+    companies: number
+    projects: number
+    activeProjects: number
+    completedProjects: number
+    cariler: number
+    totalBudget: number
+  }
+  projectStatus: { label: string; count: number }[]
+  cariStage: { label: string; count: number }[]
+  funnel: FunnelMetric[]
+  companies: { name: string; projectCount: number; cariCount: number; budget: number }[]
+  recent: { createdAt: string; type: string; message: string; context: string }[]
+}
+
+export async function getReportData(): Promise<ReportData> {
+  const [
+    companiesCount,
+    projects,
+    activeProjects,
+    completedProjects,
+    cariler,
+    budgetAgg,
+    projectGroups,
+    cariGroups,
+    funnel,
+    companyRows,
+    recentLogs,
+  ] = await Promise.all([
+    prisma.company.count(),
+    prisma.project.count(),
+    prisma.project.count({ where: { status: 'IN_PROGRESS' } }),
+    prisma.project.count({ where: { status: 'COMPLETED' } }),
+    prisma.cari.count(),
+    prisma.project.aggregate({ _sum: { budget: true } }),
+    prisma.project.groupBy({ by: ['status'], _count: { _all: true } }),
+    prisma.cari.groupBy({ by: ['stage'], _count: { _all: true } }),
+    getCariFunnelReport(),
+    prisma.company.findMany({
+      orderBy: { name: 'asc' },
+      include: {
+        _count: { select: { projects: true } },
+        projects: { select: { budget: true, _count: { select: { cariler: true } } } },
+      },
+    }),
+    prisma.activityLog.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 20,
+      include: {
+        company: { select: { name: true } },
+        project: { select: { name: true } },
+        cari: { select: { firstName: true, lastName: true } },
+      },
+    }),
+  ])
+
+  return {
+    totals: {
+      companies: companiesCount,
+      projects,
+      activeProjects,
+      completedProjects,
+      cariler,
+      totalBudget: budgetAgg._sum.budget ? Number(budgetAgg._sum.budget) : 0,
+    },
+    projectStatus: projectGroups.map((g) => ({
+      label: PROJECT_STATUS[g.status].label,
+      count: g._count._all,
+    })),
+    cariStage: cariGroups.map((g) => ({
+      label: CARI_STAGE[g.stage].label,
+      count: g._count._all,
+    })),
+    funnel,
+    companies: companyRows.map((c) => ({
+      name: c.name,
+      projectCount: c._count.projects,
+      cariCount: c.projects.reduce((s, p) => s + p._count.cariler, 0),
+      budget: c.projects.reduce((s, p) => s + (p.budget ? Number(p.budget) : 0), 0),
+    })),
+    recent: recentLogs.map((log) => ({
+      createdAt: log.createdAt.toISOString(),
+      type: ACTIVITY_TYPE[log.type],
+      message: log.message,
+      context: log.project?.name ?? log.company?.name ?? (log.cari ? `${log.cari.firstName} ${log.cari.lastName}` : '—'),
+    })),
+  }
 }
 
 export async function listActivities(opts?: {
