@@ -1,15 +1,19 @@
 import { prisma } from '@/lib/prisma'
 import type { CariDetail, CariRow, MilestoneRow, Option } from '@/types/dto'
 import type { CariStage } from '@prisma/client'
+import { cariWhere, getScope } from './access'
 
 export async function listCariler(filter?: {
   projectId?: string
   stage?: CariStage
 }): Promise<CariRow[]> {
+  const scope = await getScope()
   const cariler = await prisma.cari.findMany({
     where: {
-      projectId: filter?.projectId || undefined,
-      stage: filter?.stage || undefined,
+      AND: [
+        cariWhere(scope),
+        { projectId: filter?.projectId || undefined, stage: filter?.stage || undefined },
+      ],
     },
     orderBy: { createdAt: 'desc' },
     include: {
@@ -49,6 +53,10 @@ export async function getCariDetail(id: string): Promise<CariDetail | null> {
   })
   if (!c) return null
 
+  // Erişim kapsamı dışındaki cari görüntülenemez
+  const scope = await getScope()
+  if (!scope.all && !scope.projectIds.includes(c.projectId)) return null
+
   return {
     id: c.id,
     firstName: c.firstName,
@@ -74,7 +82,9 @@ export async function getCariDetail(id: string): Promise<CariDetail | null> {
 }
 
 export async function cariOptions(): Promise<Option[]> {
+  const scope = await getScope()
   const cariler = await prisma.cari.findMany({
+    where: cariWhere(scope),
     orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }],
     select: { id: true, firstName: true, lastName: true },
   })

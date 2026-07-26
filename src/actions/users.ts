@@ -11,6 +11,8 @@ export interface UserInput {
   name: string
   role: UserRole
   password?: string | null
+  accessCompanyIds?: string[]
+  accessProjectIds?: string[]
 }
 
 // Kullanıcı yönetimi yalnızca ADMIN rolüne açıktır
@@ -40,7 +42,14 @@ export async function createUser(input: UserInput) {
 
   const passwordHash = await bcrypt.hash(input.password, 10)
   const user = await prisma.user.create({
-    data: { email, name, role: input.role, passwordHash },
+    data: {
+      email,
+      name,
+      role: input.role,
+      passwordHash,
+      accessCompanies: { connect: (input.accessCompanyIds ?? []).map((id) => ({ id })) },
+      accessProjects: { connect: (input.accessProjectIds ?? []).map((id) => ({ id })) },
+    },
   })
   revalidate()
   return { id: user.id }
@@ -55,7 +64,15 @@ export async function updateUser(id: string, input: UserInput) {
     name: string
     role: UserRole
     passwordHash?: string
-  } = { name, role: input.role }
+    accessCompanies: { set: { id: string }[] }
+    accessProjects: { set: { id: string }[] }
+  } = {
+    name,
+    role: input.role,
+    // set => erişim listesini tamamen bu seçimle değiştirir
+    accessCompanies: { set: (input.accessCompanyIds ?? []).map((cid) => ({ id: cid })) },
+    accessProjects: { set: (input.accessProjectIds ?? []).map((pid) => ({ id: pid })) },
+  }
 
   if (input.password) {
     if (input.password.length < 6) throw new Error('Şifre en az 6 karakter olmalıdır.')

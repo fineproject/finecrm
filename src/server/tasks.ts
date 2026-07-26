@@ -1,6 +1,24 @@
 import { prisma } from '@/lib/prisma'
 import type { Option, TaskRow } from '@/types/dto'
-import type { TaskStatus } from '@prisma/client'
+import type { Prisma, TaskStatus } from '@prisma/client'
+import { getScope } from './access'
+import { getSessionUser } from '@/lib/authz'
+
+// Görev kapsamı: ADMIN tümünü; diğerleri erişilebilir projelerdeki veya
+// kendisine atanmış görevleri görür.
+async function taskScopeWhere(): Promise<Prisma.TaskWhereInput> {
+  const user = await getSessionUser()
+  if (!user) return { id: '__none__' }
+  if (user.role === 'ADMIN') return {}
+  const scope = await getScope()
+  return {
+    OR: [
+      { assignedUserId: user.id },
+      { projectId: { in: scope.projectIds } },
+      { cari: { projectId: { in: scope.projectIds } } },
+    ],
+  }
+}
 
 const include = {
   assignedUser: { select: { name: true } },
@@ -44,7 +62,7 @@ function mapTask(t: TaskWithRels): TaskRow {
 
 export async function listTasks(filter?: { status?: TaskStatus }): Promise<TaskRow[]> {
   const tasks = await prisma.task.findMany({
-    where: { status: filter?.status || undefined },
+    where: { AND: [await taskScopeWhere(), { status: filter?.status || undefined }] },
     orderBy: [{ status: 'asc' }, { dueDate: 'asc' }, { createdAt: 'desc' }],
     include,
   })
@@ -68,7 +86,7 @@ export async function getTaskDashboard(): Promise<TaskDashboard> {
   in7.setDate(in7.getDate() + 8)
 
   const open = await prisma.task.findMany({
-    where: { status: 'PENDING' },
+    where: { AND: [await taskScopeWhere(), { status: 'PENDING' }] },
     orderBy: { dueDate: 'asc' },
     include,
   })

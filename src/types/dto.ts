@@ -32,6 +32,8 @@ export interface UserRow {
   email: string
   name: string
   role: UserRole
+  accessCompanyIds: string[]
+  accessProjectIds: string[]
   createdAt: string
 }
 

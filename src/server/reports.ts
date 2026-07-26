@@ -2,6 +2,14 @@ import { prisma } from '@/lib/prisma'
 import type { ActivityRow } from '@/types/dto'
 import type { ActivityType, CariStage, ProjectStatus } from '@prisma/client'
 import { ACTIVITY_TYPE, CARI_STAGE, PROJECT_STATUS } from '@/lib/labels'
+import {
+  activityWhere,
+  cariWhere,
+  companyWhere,
+  getScope,
+  projectWhere,
+  type Scope,
+} from './access'
 
 // ---- Tarih yardımcıları ----
 function startOfDay(d = new Date()) {
@@ -59,18 +67,23 @@ export interface DashboardStats {
   recent: ActivityRow[]
 }
 
-async function periodSummary(key: ReportPeriod, label: string): Promise<PeriodSummary> {
+async function periodSummary(
+  key: ReportPeriod,
+  label: string,
+  scope: Scope,
+): Promise<PeriodSummary> {
   const gte = periodStart(key)
-  const where = gte ? { createdAt: { gte } } : {}
+  const base = gte ? [activityWhere(scope), { createdAt: { gte } }] : [activityWhere(scope)]
   const [newProjects, completedMilestones, cariActivities] = await Promise.all([
-    prisma.activityLog.count({ where: { ...where, type: 'PROJECT_CREATED' } }),
-    prisma.activityLog.count({ where: { ...where, type: 'MILESTONE_COMPLETED' } }),
-    prisma.activityLog.count({ where: { ...where, type: { in: CARI_ACTIVITY_TYPES } } }),
+    prisma.activityLog.count({ where: { AND: [...base, { type: 'PROJECT_CREATED' }] } }),
+    prisma.activityLog.count({ where: { AND: [...base, { type: 'MILESTONE_COMPLETED' }] } }),
+    prisma.activityLog.count({ where: { AND: [...base, { type: { in: CARI_ACTIVITY_TYPES } }] } }),
   ])
   return { key, label, newProjects, completedMilestones, cariActivities }
 }
 
 export async function getDashboardStats(): Promise<DashboardStats> {
+  const scope = await getScope()
   const [
     companies,
     projects,
@@ -82,18 +95,19 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     trendLogs,
     recentLogs,
   ] = await Promise.all([
-    prisma.company.count(),
-    prisma.project.count(),
-    prisma.cari.count(),
-    prisma.project.count({ where: { status: 'IN_PROGRESS' } }),
-    prisma.project.aggregate({ _sum: { budget: true } }),
-    prisma.project.groupBy({ by: ['status'], _count: { _all: true } }),
-    prisma.cari.groupBy({ by: ['stage'], _count: { _all: true } }),
+    prisma.company.count({ where: companyWhere(scope) }),
+    prisma.project.count({ where: projectWhere(scope) }),
+    prisma.cari.count({ where: cariWhere(scope) }),
+    prisma.project.count({ where: { AND: [projectWhere(scope), { status: 'IN_PROGRESS' }] } }),
+    prisma.project.aggregate({ _sum: { budget: true }, where: projectWhere(scope) }),
+    prisma.project.groupBy({ by: ['status'], _count: { _all: true }, where: projectWhere(scope) }),
+    prisma.cari.groupBy({ by: ['stage'], _count: { _all: true }, where: cariWhere(scope) }),
     prisma.activityLog.findMany({
-      where: { createdAt: { gte: daysAgo(13) } },
+      where: { AND: [activityWhere(scope), { createdAt: { gte: daysAgo(13) } }] },
       select: { createdAt: true },
     }),
     prisma.activityLog.findMany({
+      where: activityWhere(scope),
       orderBy: { createdAt: 'desc' },
       take: 8,
       include: {
@@ -105,9 +119,9 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   ])
 
   const [day, week, month] = await Promise.all([
-    periodSummary('day', 'Günlük'),
-    periodSummary('week', 'Haftalık'),
-    periodSummary('month', 'Aylık'),
+    periodSummary('day', 'Günlük', scope),
+    periodSummary('week', 'Haftalık', scope),
+    periodSummary('month', 'Aylık', scope),
   ])
 
   // Son 14 günün günlük hareket sayısı (grafik için)
@@ -146,18 +160,22 @@ export interface FunnelMetric {
   month: number
 }
 
-export async function getCariFunnelReport(): Promise<FunnelMetric[]> {
+export async function getCariFunnelReport(scope?: Scope): Promise<FunnelMetric[]> {
+  const s = scope ?? (await getScope())
   const bounds = { day: startOfDay(), week: daysAgo(7), month: daysAgo(30) }
 
   const created = (gte: Date) =>
-    prisma.activityLog.count({ where: { type: 'CARI_CREATED', createdAt: { gte } } })
+    prisma.activityLog.count({
+      where: { AND: [activityWhere(s), { type: 'CARI_CREATED', createdAt: { gte } }] },
+    })
 
   const toStage = (stage: string, gte: Date) =>
     prisma.activityLog.count({
       where: {
-        type: 'CARI_STAGE_CHANGED',
-        metadata: { path: ['to'], equals: stage },
-        createdAt: { gte },
+        AND: [
+          activityWhere(s),
+          { type: 'CARI_STAGE_CHANGED', metadata: { path: ['to'], equals: stage }, createdAt: { gte } },
+        ],
       },
     })
 
@@ -199,6 +217,7 @@ export interface ReportData {
 }
 
 export async function getReportData(): Promise<ReportData> {
+  const scope = await getScope()
   const [
     companiesCount,
     projects,
@@ -212,16 +231,17 @@ export async function getReportData(): Promise<ReportData> {
     companyRows,
     recentLogs,
   ] = await Promise.all([
-    prisma.company.count(),
-    prisma.project.count(),
-    prisma.project.count({ where: { status: 'IN_PROGRESS' } }),
-    prisma.project.count({ where: { status: 'COMPLETED' } }),
-    prisma.cari.count(),
-    prisma.project.aggregate({ _sum: { budget: true } }),
-    prisma.project.groupBy({ by: ['status'], _count: { _all: true } }),
-    prisma.cari.groupBy({ by: ['stage'], _count: { _all: true } }),
-    getCariFunnelReport(),
+    prisma.company.count({ where: companyWhere(scope) }),
+    prisma.project.count({ where: projectWhere(scope) }),
+    prisma.project.count({ where: { AND: [projectWhere(scope), { status: 'IN_PROGRESS' }] } }),
+    prisma.project.count({ where: { AND: [projectWhere(scope), { status: 'COMPLETED' }] } }),
+    prisma.cari.count({ where: cariWhere(scope) }),
+    prisma.project.aggregate({ _sum: { budget: true }, where: projectWhere(scope) }),
+    prisma.project.groupBy({ by: ['status'], _count: { _all: true }, where: projectWhere(scope) }),
+    prisma.cari.groupBy({ by: ['stage'], _count: { _all: true }, where: cariWhere(scope) }),
+    getCariFunnelReport(scope),
     prisma.company.findMany({
+      where: companyWhere(scope),
       orderBy: { name: 'asc' },
       include: {
         _count: { select: { projects: true } },
@@ -229,6 +249,7 @@ export async function getReportData(): Promise<ReportData> {
       },
     }),
     prisma.activityLog.findMany({
+      where: activityWhere(scope),
       orderBy: { createdAt: 'desc' },
       take: 20,
       include: {
@@ -275,12 +296,16 @@ export async function getReportData(): Promise<ReportData> {
 export async function listActivities(opts?: {
   type?: ActivityType
   period?: ReportPeriod
+  scoped?: boolean // audit gibi yerlerde false ile tüm kayıtlar
 }): Promise<ActivityRow[]> {
   const gte = opts?.period ? periodStart(opts.period) : undefined
+  const scope = opts?.scoped === false ? { all: true, companyIds: [], projectIds: [] } : await getScope()
   const logs = await prisma.activityLog.findMany({
     where: {
-      type: opts?.type || undefined,
-      createdAt: gte ? { gte } : undefined,
+      AND: [
+        activityWhere(scope),
+        { type: opts?.type || undefined, createdAt: gte ? { gte } : undefined },
+      ],
     },
     orderBy: { createdAt: 'desc' },
     take: 300,

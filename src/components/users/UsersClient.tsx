@@ -16,15 +16,19 @@ import UserFormDrawer from './UserFormDrawer'
 import { deleteUser } from '@/actions/users'
 import { USER_ROLE } from '@/lib/labels'
 import { formatDate } from '@/lib/format'
-import type { UserRow } from '@/types/dto'
+import type { Option, UserRow } from '@/types/dto'
 import type { UserRole } from '@prisma/client'
 
 export default function UsersClient({
   rows,
+  companies,
+  projects,
   isAdmin,
   currentUserId,
 }: {
   rows: UserRow[]
+  companies: Option[]
+  projects: Option[]
   isAdmin: boolean
   currentUserId: string
 }) {
@@ -48,6 +52,16 @@ export default function UsersClient({
         const v = p.value as UserRole
         return <LabelChip label={USER_ROLE[v].label} color={USER_ROLE[v].color} />
       },
+    },
+    {
+      field: 'access',
+      headerName: 'Erişim',
+      width: 150,
+      sortable: false,
+      valueGetter: (_v, row) =>
+        row.role === 'ADMIN'
+          ? 'Tümü'
+          : `${row.accessCompanyIds.length} şirket · ${row.accessProjectIds.length} proje`,
     },
     { field: 'createdAt', headerName: 'Kayıt', width: 120, valueFormatter: (v: string) => formatDate(v) },
     {
@@ -137,6 +151,8 @@ export default function UsersClient({
       <UserFormDrawer
         open={drawerOpen}
         initial={editing}
+        companies={companies}
+        projects={projects}
         onClose={() => setDrawerOpen(false)}
         onSuccess={refresh}
       />

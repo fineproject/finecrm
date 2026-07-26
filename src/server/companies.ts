@@ -1,8 +1,11 @@
 import { prisma } from '@/lib/prisma'
 import type { CompanyRow, Option } from '@/types/dto'
+import { companyWhere, getScope } from './access'
 
 export async function listCompanies(): Promise<CompanyRow[]> {
+  const scope = await getScope()
   const companies = await prisma.company.findMany({
+    where: companyWhere(scope),
     orderBy: { createdAt: 'desc' },
     include: {
       _count: { select: { projects: true } },
@@ -24,6 +27,17 @@ export async function listCompanies(): Promise<CompanyRow[]> {
 }
 
 export async function companyOptions(): Promise<Option[]> {
+  const scope = await getScope()
+  const companies = await prisma.company.findMany({
+    where: companyWhere(scope),
+    orderBy: { name: 'asc' },
+    select: { id: true, name: true },
+  })
+  return companies.map((c) => ({ id: c.id, label: c.name }))
+}
+
+// Yönetim ekranları için kapsam gözetmeksizin tüm şirketler
+export async function allCompanyOptions(): Promise<Option[]> {
   const companies = await prisma.company.findMany({
     orderBy: { name: 'asc' },
     select: { id: true, name: true },

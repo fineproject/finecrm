@@ -118,6 +118,10 @@ model User {
   notifications Notification[] // kendisine gelen bildirimler
   tasks         Task[] // kendisine atanan görevler
 
+  // Erişim kapsamı (ADMIN dışındaki kullanıcılar bunlarla sınırlanır)
+  accessCompanies Company[] @relation("UserCompanyAccess")
+  accessProjects  Project[] @relation("UserProjectAccess")
+
   @@map("users")
 }
 
@@ -134,6 +138,7 @@ model Company {
 
   projects     Project[]
   activityLogs ActivityLog[]
+  accessUsers  User[]        @relation("UserCompanyAccess")
 
   @@index([name])
   @@map("companies")
@@ -156,6 +161,7 @@ model Project {
   cariler      Cari[]
   activityLogs ActivityLog[]
   tasks        Task[]
+  accessUsers  User[]        @relation("UserProjectAccess")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

@@ -77,6 +77,18 @@ async function main() {
     },
   })
 
+  // --- Erişim kapsamı atamaları ---
+  // Müdür: Acme şirketinin tamamına (dolayısıyla tüm projelerine) erişir
+  await prisma.user.update({
+    where: { email: 'mudur@finecrm.local' },
+    data: { accessCompanies: { connect: { id: acme.id } } },
+  })
+  // Üye: yalnızca Bahçeşehir Konutları projesine erişir
+  await prisma.user.update({
+    where: { email: 'uye@finecrm.local' },
+    data: { accessProjects: { connect: { id: bahcesehir.id } } },
+  })
+
   // --- Aşamalar (Milestones) ---
   const m1 = await prisma.milestone.create({
     data: { projectId: bahcesehir.id, title: 'Temel & Kaba İnşaat', status: 'COMPLETED', order: 1, completedAt: new Date('2026-04-01') },
