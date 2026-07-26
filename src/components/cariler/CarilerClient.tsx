@@ -10,6 +10,7 @@ import Stack from '@mui/material/Stack'
 import AddIcon from '@mui/icons-material/Add'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
+import TimelineOutlinedIcon from '@mui/icons-material/TimelineOutlined'
 import { DataGrid, GridActionsCellItem, type GridColDef } from '@mui/x-data-grid'
 import PageHeader from '@/components/common/PageHeader'
 import ConfirmDialog from '@/components/common/ConfirmDialog'
@@ -77,8 +78,14 @@ export default function CarilerClient({
       field: 'actions',
       type: 'actions',
       headerName: '',
-      width: 90,
+      width: 130,
       getActions: (params) => [
+        <GridActionsCellItem
+          key="timeline"
+          icon={<TimelineOutlinedIcon />}
+          label="Geçmiş"
+          onClick={() => router.push(`/cariler/${params.id}`)}
+        />,
         <GridActionsCellItem
           key="edit"
           icon={<EditOutlinedIcon />}

@@ -10,7 +10,6 @@ import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
 import Chip from '@mui/material/Chip'
 import { DataGrid, type GridColDef } from '@mui/x-data-grid'
-import PageHeader from '@/components/common/PageHeader'
 import { ACTIVITY_TYPE } from '@/lib/labels'
 import { formatDateTime } from '@/lib/format'
 import type { ActivityRow } from '@/types/dto'
@@ -73,7 +72,9 @@ export default function ReportsClient({ rows }: { rows: ActivityRow[] }) {
 
   return (
     <>
-      <PageHeader title="Raporlar" subtitle="Sistem hareketlerini filtreleyin, dönemsel özetleri görün" />
+      <Typography variant="h6" fontWeight={700} sx={{ mb: 2 }}>
+        İşlem Geçmişi
+      </Typography>
 
       <Box
         sx={{

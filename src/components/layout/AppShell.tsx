@@ -23,8 +23,15 @@ import MenuIcon from '@mui/icons-material/Menu'
 import NotificationsNoneOutlinedIcon from '@mui/icons-material/NotificationsNoneOutlined'
 import { NAV_ITEMS, labelForPath } from './navConfig'
 import ThemeToggle from './ThemeToggle'
+import UserMenu from './UserMenu'
 
 const DRAWER_WIDTH = 264
+
+export interface ShellUser {
+  name: string
+  email: string
+  roleLabel: string
+}
 
 function isActive(pathname: string, href: string, exact?: boolean) {
   if (exact) return pathname === href
@@ -34,9 +41,11 @@ function isActive(pathname: string, href: string, exact?: boolean) {
 export default function AppShell({
   children,
   unreadCount = 0,
+  user,
 }: {
   children: React.ReactNode
   unreadCount?: number
+  user?: ShellUser | null
 }) {
   const pathname = usePathname()
   const theme = useTheme()
@@ -137,7 +146,7 @@ export default function AppShell({
                 <NotificationsNoneOutlinedIcon />
               </Badge>
             </IconButton>
-            <Avatar sx={{ width: 34, height: 34, ml: 1, bgcolor: 'secondary.main' }}>FP</Avatar>
+            {user && <UserMenu name={user.name} email={user.email} roleLabel={user.roleLabel} />}
           </Stack>
         </Toolbar>
       </AppBar>

@@ -84,6 +84,22 @@ export async function setCariStage(id: string, stage: CariStage) {
   return { id }
 }
 
+export async function addCariNote(cariId: string, note: string) {
+  const text = note.trim()
+  if (!text) throw new Error('Not boş olamaz.')
+  const cari = await prisma.cari.findUniqueOrThrow({ where: { id: cariId } })
+  await logActivity({
+    type: 'NOTE_ADDED',
+    message: text,
+    projectId: cari.projectId,
+    cariId: cari.id,
+  })
+  revalidatePath(`/cariler/${cariId}`)
+  revalidatePath('/reports')
+  revalidatePath('/')
+  return { ok: true }
+}
+
 export async function deleteCari(id: string) {
   const cari = await prisma.cari.delete({ where: { id } })
   await logActivity({

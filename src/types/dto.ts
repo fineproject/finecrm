@@ -6,7 +6,16 @@ import type {
   NotificationChannel,
   NotificationStatus,
   ProjectStatus,
+  UserRole,
 } from '@prisma/client'
+
+export interface UserRow {
+  id: string
+  email: string
+  name: string
+  role: UserRole
+  createdAt: string
+}
 
 // İstemciye (Client Components / DataGrid) aktarılabilir düz veri tipleri.
 // Prisma Decimal -> number, Date -> ISO string olarak serileştirilir.
@@ -59,6 +68,31 @@ export interface CariRow {
   currentMilestoneId: string | null
   currentMilestoneTitle: string | null
   createdAt: string
+}
+
+export interface CariHistoryItem {
+  id: string
+  type: ActivityType
+  message: string
+  createdAt: string
+}
+
+export interface CariDetail {
+  id: string
+  firstName: string
+  lastName: string
+  fullName: string
+  phone: string | null
+  email: string | null
+  type: CariType
+  stage: CariStage
+  infoStatus: string | null
+  projectId: string
+  projectName: string
+  companyName: string
+  currentMilestoneTitle: string | null
+  createdAt: string
+  history: CariHistoryItem[]
 }
 
 export interface MilestoneRow {

@@ -5,6 +5,7 @@ import FolderOutlinedIcon from '@mui/icons-material/FolderOutlined'
 import PeopleAltOutlinedIcon from '@mui/icons-material/PeopleAltOutlined'
 import InsightsOutlinedIcon from '@mui/icons-material/InsightsOutlined'
 import NotificationsNoneOutlinedIcon from '@mui/icons-material/NotificationsNoneOutlined'
+import ManageAccountsOutlinedIcon from '@mui/icons-material/ManageAccountsOutlined'
 
 export interface NavItem {
   href: string
@@ -20,6 +21,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: '/cariler', label: 'Cariler', icon: <PeopleAltOutlinedIcon /> },
   { href: '/reports', label: 'Raporlar', icon: <InsightsOutlinedIcon /> },
   { href: '/notifications', label: 'Bildirimler', icon: <NotificationsNoneOutlinedIcon /> },
+  { href: '/users', label: 'Kullanıcılar', icon: <ManageAccountsOutlinedIcon /> },
 ]
 
 export function labelForPath(pathname: string): string {

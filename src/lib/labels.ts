@@ -8,6 +8,7 @@ import type {
   CariType,
   ActivityType,
   NotificationStatus,
+  UserRole,
 } from '@prisma/client'
 
 type MuiColor = 'default' | 'primary' | 'secondary' | 'success' | 'warning' | 'error' | 'info'
@@ -46,11 +47,33 @@ export const CARI_TYPE: Record<CariType, Meta> = {
   SUPPLIER: { label: 'Tedarikçi', color: 'info' },
 }
 
+export const USER_ROLE: Record<UserRole, Meta> = {
+  ADMIN: { label: 'Yönetici', color: 'error' },
+  MANAGER: { label: 'Müdür', color: 'warning' },
+  MEMBER: { label: 'Üye', color: 'default' },
+}
+
 export const NOTIFICATION_STATUS: Record<NotificationStatus, Meta> = {
   PENDING: { label: 'Kuyrukta', color: 'default' },
   SENT: { label: 'Gönderildi', color: 'info' },
   READ: { label: 'Okundu', color: 'success' },
   FAILED: { label: 'Başarısız', color: 'error' },
+}
+
+// Timeline noktalarının rengi için işlem tipi → renk eşlemesi
+export const ACTIVITY_STYLE: Record<ActivityType, { color: MuiColor; hex: string }> = {
+  COMPANY_CREATED: { color: 'primary', hex: '#4f46e5' },
+  COMPANY_UPDATED: { color: 'info', hex: '#0ea5e9' },
+  PROJECT_CREATED: { color: 'primary', hex: '#4f46e5' },
+  PROJECT_UPDATED: { color: 'info', hex: '#0ea5e9' },
+  PROJECT_STATUS_CHANGED: { color: 'warning', hex: '#f59e0b' },
+  MILESTONE_CREATED: { color: 'primary', hex: '#7c3aed' },
+  MILESTONE_UPDATED: { color: 'info', hex: '#0ea5e9' },
+  MILESTONE_COMPLETED: { color: 'success', hex: '#10b981' },
+  CARI_CREATED: { color: 'primary', hex: '#4f46e5' },
+  CARI_UPDATED: { color: 'info', hex: '#0ea5e9' },
+  CARI_STAGE_CHANGED: { color: 'success', hex: '#10b981' },
+  NOTE_ADDED: { color: 'warning', hex: '#f59e0b' },
 }
 
 export const ACTIVITY_TYPE: Record<ActivityType, string> = {

@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma'
-import type { CariRow, MilestoneRow, Option } from '@/types/dto'
+import type { CariDetail, CariRow, MilestoneRow, Option } from '@/types/dto'
 import type { CariStage } from '@prisma/client'
 
 export async function listCariler(filter?: {
@@ -35,6 +35,42 @@ export async function listCariler(filter?: {
     currentMilestoneTitle: c.currentMilestone?.title ?? null,
     createdAt: c.createdAt.toISOString(),
   }))
+}
+
+// Tek bir cariyi işlem geçmişiyle (timeline) birlikte getirir
+export async function getCariDetail(id: string): Promise<CariDetail | null> {
+  const c = await prisma.cari.findUnique({
+    where: { id },
+    include: {
+      project: { select: { name: true, company: { select: { name: true } } } },
+      currentMilestone: { select: { title: true } },
+      activityLogs: { orderBy: { createdAt: 'desc' } },
+    },
+  })
+  if (!c) return null
+
+  return {
+    id: c.id,
+    firstName: c.firstName,
+    lastName: c.lastName,
+    fullName: `${c.firstName} ${c.lastName}`,
+    phone: c.phone,
+    email: c.email,
+    type: c.type,
+    stage: c.stage,
+    infoStatus: c.infoStatus,
+    projectId: c.projectId,
+    projectName: c.project.name,
+    companyName: c.project.company.name,
+    currentMilestoneTitle: c.currentMilestone?.title ?? null,
+    createdAt: c.createdAt.toISOString(),
+    history: c.activityLogs.map((a) => ({
+      id: a.id,
+      type: a.type,
+      message: a.message,
+      createdAt: a.createdAt.toISOString(),
+    })),
+  }
 }
 
 export async function milestoneOptions(projectId: string): Promise<Option[]> {

@@ -92,12 +92,13 @@ enum NotificationStatus {
 
 /// Sistem kullanıcısı — işlemlerin sahibi ve bildirim alıcısı
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String
-  role      UserRole @default(MEMBER)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String? // bcrypt; kimlik doğrulama için
+  role         UserRole @default(MEMBER)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   activityLogs  ActivityLog[] // actor olarak gerçekleştirdiği işlemler
   notifications Notification[] // kendisine gelen bildirimler

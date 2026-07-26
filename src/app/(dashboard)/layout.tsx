@@ -1,11 +1,15 @@
 import AppShell from '@/components/layout/AppShell'
 import { unreadCount } from '@/server/notifications'
+import { auth } from '@/auth'
+import { USER_ROLE } from '@/lib/labels'
 
 export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  const session = await auth()
+
   // Veritabanı erişilemezse bile kabuk render olsun diye korumalı sorgu
   let unread = 0
   try {
@@ -14,5 +18,17 @@ export default async function DashboardLayout({
     unread = 0
   }
 
-  return <AppShell unreadCount={unread}>{children}</AppShell>
+  const user = session?.user
+    ? {
+        name: session.user.name ?? 'Kullanıcı',
+        email: session.user.email ?? '',
+        roleLabel: USER_ROLE[session.user.role].label,
+      }
+    : null
+
+  return (
+    <AppShell unreadCount={unread} user={user}>
+      {children}
+    </AppShell>
+  )
 }

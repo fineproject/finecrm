@@ -135,6 +135,50 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   }
 }
 
+// Cari satış hunisi raporu: dönemsel (günlük/haftalık/aylık) metrikler.
+// "Gelen" = yeni kayıt, sonraki adımlar aşama geçişlerinden (CARI_STAGE_CHANGED) sayılır.
+export interface FunnelMetric {
+  key: string
+  label: string
+  day: number
+  week: number
+  month: number
+}
+
+export async function getCariFunnelReport(): Promise<FunnelMetric[]> {
+  const bounds = { day: startOfDay(), week: daysAgo(7), month: daysAgo(30) }
+
+  const created = (gte: Date) =>
+    prisma.activityLog.count({ where: { type: 'CARI_CREATED', createdAt: { gte } } })
+
+  const toStage = (stage: string, gte: Date) =>
+    prisma.activityLog.count({
+      where: {
+        type: 'CARI_STAGE_CHANGED',
+        metadata: { path: ['to'], equals: stage },
+        createdAt: { gte },
+      },
+    })
+
+  const defs: { key: string; label: string; fn: (gte: Date) => Promise<number> }[] = [
+    { key: 'incoming', label: 'Gelen (Yeni Kayıt)', fn: created },
+    { key: 'informed', label: 'Bilgi Verilenler', fn: (g) => toStage('INFO_GIVEN', g) },
+    { key: 'callbacks', label: 'Dönüş Yapılanlar', fn: (g) => toStage('CALLED_AGAIN', g) },
+    { key: 'converted', label: 'Potansiyele Dönüşenler', fn: (g) => toStage('INVITED', g) },
+  ]
+
+  return Promise.all(
+    defs.map(async (d) => {
+      const [day, week, month] = await Promise.all([
+        d.fn(bounds.day),
+        d.fn(bounds.week),
+        d.fn(bounds.month),
+      ])
+      return { key: d.key, label: d.label, day, week, month }
+    }),
+  )
+}
+
 export async function listActivities(opts?: {
   type?: ActivityType
   period?: ReportPeriod

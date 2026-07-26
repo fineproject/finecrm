@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client'
+import bcrypt from 'bcryptjs'
 
 const prisma = new PrismaClient()
 
@@ -15,7 +16,18 @@ async function main() {
   await prisma.user.deleteMany()
 
   const admin = await prisma.user.create({
-    data: { email: 'admin@finecrm.local', name: 'Sistem Yöneticisi', role: 'ADMIN' },
+    data: {
+      email: 'admin@finecrm.local',
+      name: 'Sistem Yöneticisi',
+      role: 'ADMIN',
+      passwordHash: await bcrypt.hash('admin123', 10),
+    },
+  })
+  await prisma.user.createMany({
+    data: [
+      { email: 'mudur@finecrm.local', name: 'Proje Müdürü', role: 'MANAGER', passwordHash: await bcrypt.hash('mudur123', 10) },
+      { email: 'uye@finecrm.local', name: 'Satış Temsilcisi', role: 'MEMBER', passwordHash: await bcrypt.hash('uye123', 10) },
+    ],
   })
 
   // --- Şirketler ---
