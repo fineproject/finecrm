@@ -1,143 +1,94 @@
-import { useEffect, useMemo, useState } from 'react'
-import Sidebar from './components/Sidebar'
-import Board from './components/Board'
+import { useMemo, useState } from 'react'
+import Nav, { type Page } from './components/Nav'
 import CariDetail from './components/CariDetail'
 import AddCariModal from './components/AddCariModal'
+import OverviewPage from './pages/OverviewPage'
+import CompaniesPage from './pages/CompaniesPage'
+import ProjectsPage from './pages/ProjectsPage'
+import CariPage from './pages/CariPage'
 import { useStore } from './useStore'
 
 export default function App() {
   const store = useStore()
   const { db } = store
 
-  const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null)
-  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null)
+  const [page, setPage] = useState<Page>('overview')
+  const [companyFilter, setCompanyFilter] = useState<string | null>(null)
+  const [cariCompanyId, setCariCompanyId] = useState<string | null>(null)
+  const [cariProjectId, setCariProjectId] = useState<string | null>(null)
   const [openCariId, setOpenCariId] = useState<string | null>(null)
   const [addingCari, setAddingCari] = useState(false)
 
-  // İlk açılışta ilk şirket/projeyi otomatik seç
-  useEffect(() => {
-    if (!selectedCompanyId && db.companies.length > 0) {
-      setSelectedCompanyId(db.companies[0].id)
-    }
-  }, [db.companies, selectedCompanyId])
-
-  useEffect(() => {
-    if (!selectedCompanyId) {
-      setSelectedProjectId(null)
-      return
-    }
-    const projects = db.projects.filter((p) => p.companyId === selectedCompanyId)
-    const stillValid = projects.some((p) => p.id === selectedProjectId)
-    if (!stillValid) {
-      setSelectedProjectId(projects[0]?.id ?? null)
-    }
-  }, [selectedCompanyId, db.projects, selectedProjectId])
-
-  const selectedCompany = useMemo(
-    () => db.companies.find((c) => c.id === selectedCompanyId) ?? null,
-    [db.companies, selectedCompanyId],
-  )
-  const selectedProject = useMemo(
-    () => db.projects.find((p) => p.id === selectedProjectId) ?? null,
-    [db.projects, selectedProjectId],
-  )
   const openCari = useMemo(
     () => db.cariler.find((k) => k.id === openCariId) ?? null,
     [db.cariler, openCariId],
   )
 
-  function selectCompany(id: string) {
-    setSelectedCompanyId(id)
-    setSelectedProjectId(null)
+  // Şirketler → o şirketin projelerine geç
+  function openProjectsForCompany(companyId: string) {
+    setCompanyFilter(companyId)
+    setPage('projects')
+  }
+
+  // Projeler → o projenin carilerine geç
+  function openCariForProject(projectId: string) {
+    const project = db.projects.find((p) => p.id === projectId)
+    if (project) {
+      setCariCompanyId(project.companyId)
+      setCariProjectId(project.id)
+    }
+    setPage('cari')
+  }
+
+  function changeCariCompany(companyId: string | null) {
+    setCariCompanyId(companyId)
+    setCariProjectId(null)
   }
 
   return (
     <div className="app">
-      <Sidebar
-        store={store}
-        selectedCompanyId={selectedCompanyId}
-        selectedProjectId={selectedProjectId}
-        onSelectCompany={selectCompany}
-        onSelectProject={setSelectedProjectId}
-      />
+      <Nav active={page} onNavigate={setPage} db={db} />
 
       <main className="main">
-        <header className="topbar">
-          <div className="crumbs">
-            {selectedCompany ? (
-              <>
-                <span className="crumb">{selectedCompany.name}</span>
-                {selectedProject && (
-                  <>
-                    <span className="crumb-sep">/</span>
-                    <span className="crumb strong">{selectedProject.name}</span>
-                  </>
-                )}
-              </>
-            ) : (
-              <span className="crumb muted">Başlamak için bir şirket seçin veya ekleyin</span>
-            )}
-          </div>
-          <div className="topbar-stats">
-            <span className="stat">
-              <b>{db.companies.length}</b> şirket
-            </span>
-            <span className="stat">
-              <b>{db.projects.length}</b> proje
-            </span>
-            <span className="stat">
-              <b>{db.cariler.length}</b> cari
-            </span>
-          </div>
-        </header>
+        {page === 'overview' && <OverviewPage store={store} onNavigate={setPage} />}
 
-        <div className="content">
-          {!selectedCompany && (
-            <EmptyState
-              title="Henüz şirket seçilmedi"
-              text="Soldaki panelden bir şirket ekleyin, ardından o şirkete projeler ve cariler tanımlayın."
-            />
-          )}
+        {page === 'companies' && (
+          <CompaniesPage store={store} onOpenProjects={openProjectsForCompany} />
+        )}
 
-          {selectedCompany && !selectedProject && (
-            <EmptyState
-              title="Proje seçilmedi"
-              text={`"${selectedCompany.name}" için soldaki panelden bir proje ekleyin veya seçin. Cariler projelere bağlıdır.`}
-            />
-          )}
+        {page === 'projects' && (
+          <ProjectsPage
+            store={store}
+            companyFilter={companyFilter}
+            onChangeCompanyFilter={setCompanyFilter}
+            onOpenCari={openCariForProject}
+          />
+        )}
 
-          {selectedProject && (
-            <Board
-              project={selectedProject}
-              store={store}
-              onOpenCari={setOpenCariId}
-              onAddCari={() => setAddingCari(true)}
-            />
-          )}
-        </div>
+        {page === 'cari' && (
+          <CariPage
+            store={store}
+            companyId={cariCompanyId}
+            projectId={cariProjectId}
+            onChangeCompany={changeCariCompany}
+            onChangeProject={setCariProjectId}
+            onOpenCari={setOpenCariId}
+            onAddCari={() => setAddingCari(true)}
+          />
+        )}
       </main>
 
       {openCari && (
         <CariDetail cari={openCari} store={store} onClose={() => setOpenCariId(null)} />
       )}
 
-      {addingCari && selectedProject && (
+      {addingCari && cariProjectId && (
         <AddCariModal
-          projectId={selectedProject.id}
+          projectId={cariProjectId}
           store={store}
           onClose={() => setAddingCari(false)}
         />
       )}
-    </div>
-  )
-}
-
-function EmptyState({ title, text }: { title: string; text: string }) {
-  return (
-    <div className="empty-state">
-      <div className="empty-emoji">🗂️</div>
-      <h2>{title}</h2>
-      <p>{text}</p>
     </div>
   )
 }
