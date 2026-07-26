@@ -16,6 +16,13 @@ import TextField from '@mui/material/TextField'
 import IconButton from '@mui/material/IconButton'
 import Tooltip from '@mui/material/Tooltip'
 import Divider from '@mui/material/Divider'
+import Timeline from '@mui/lab/Timeline'
+import TimelineItem from '@mui/lab/TimelineItem'
+import TimelineSeparator from '@mui/lab/TimelineSeparator'
+import TimelineConnector from '@mui/lab/TimelineConnector'
+import TimelineContent from '@mui/lab/TimelineContent'
+import TimelineOppositeContent from '@mui/lab/TimelineOppositeContent'
+import TimelineDot from '@mui/lab/TimelineDot'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import { addCariNote, setCariStage } from '@/actions/cariler'
 import { CARI_STAGE, CARI_TYPE, ACTIVITY_TYPE, ACTIVITY_STYLE, toOptions } from '@/lib/labels'
@@ -145,41 +152,42 @@ export default function CariDetailView({ cari }: { cari: CariDetail }) {
                 Henüz işlem yok.
               </Typography>
             ) : (
-              <Box>
+              <Timeline
+                sx={{
+                  m: 0,
+                  p: 0,
+                  '& .MuiTimelineOppositeContent-root': {
+                    flex: { xs: 0, sm: 0.35 },
+                    display: { xs: 'none', sm: 'block' },
+                    px: { xs: 0, sm: 2 },
+                  },
+                }}
+              >
                 {cari.history.map((h, i) => {
                   const style = ACTIVITY_STYLE[h.type]
                   const isLast = i === cari.history.length - 1
                   return (
-                    <Box key={h.id} sx={{ display: 'flex', gap: 2 }}>
-                      {/* Sol sütun: nokta + bağlayıcı çizgi */}
-                      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                        <Box
-                          sx={{
-                            width: 14,
-                            height: 14,
-                            borderRadius: '50%',
-                            bgcolor: style.hex,
-                            mt: 0.5,
-                            flexShrink: 0,
-                            boxShadow: (t) => `0 0 0 3px ${t.palette.background.paper}, 0 0 0 4px ${t.palette.divider}`,
-                          }}
-                        />
-                        {!isLast && <Box sx={{ width: 2, flexGrow: 1, bgcolor: 'divider', my: 0.5 }} />}
-                      </Box>
-                      {/* Sağ sütun: içerik */}
-                      <Box sx={{ pb: isLast ? 0 : 2.5, minWidth: 0 }}>
+                    <TimelineItem key={h.id}>
+                      <TimelineOppositeContent color="text.secondary">
+                        <Typography variant="caption">{formatDateTime(h.createdAt)}</Typography>
+                      </TimelineOppositeContent>
+                      <TimelineSeparator>
+                        <TimelineDot sx={{ bgcolor: style.hex, boxShadow: 'none', m: 0.5 }} />
+                        {!isLast && <TimelineConnector />}
+                      </TimelineSeparator>
+                      <TimelineContent sx={{ pb: 3 }}>
                         <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
                           <Typography variant="body2" fontWeight={500}>{h.message}</Typography>
                           <Chip label={ACTIVITY_TYPE[h.type]} size="small" variant="outlined" color={style.color} />
                         </Stack>
-                        <Typography variant="caption" color="text.secondary">
+                        <Typography variant="caption" color="text.secondary" sx={{ display: { sm: 'none' } }}>
                           {formatDateTime(h.createdAt)}
                         </Typography>
-                      </Box>
-                    </Box>
+                      </TimelineContent>
+                    </TimelineItem>
                   )
                 })}
-              </Box>
+              </Timeline>
             )}
           </CardContent>
         </Card>
