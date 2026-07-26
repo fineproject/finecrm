@@ -16,6 +16,8 @@ import TextField from '@mui/material/TextField'
 import IconButton from '@mui/material/IconButton'
 import Tooltip from '@mui/material/Tooltip'
 import Divider from '@mui/material/Divider'
+import ToggleButton from '@mui/material/ToggleButton'
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
 import Timeline from '@mui/lab/Timeline'
 import TimelineItem from '@mui/lab/TimelineItem'
 import TimelineSeparator from '@mui/lab/TimelineSeparator'
@@ -57,6 +59,14 @@ export default function CariDetailView({ cari }: { cari: CariDetail }) {
 
   const stageMeta = CARI_STAGE[cari.stage]
   const typeMeta = CARI_TYPE[cari.type]
+
+  // Timeline filtresi
+  const [filter, setFilter] = React.useState<'all' | 'note' | 'stage' | 'other'>('all')
+  const categoryOf = (type: string) =>
+    type === 'NOTE_ADDED' ? 'note' : type === 'CARI_STAGE_CHANGED' ? 'stage' : 'other'
+  const filteredHistory = cari.history.filter(
+    (h) => filter === 'all' || categoryOf(h.type) === filter,
+  )
 
   return (
     <>
@@ -145,11 +155,29 @@ export default function CariDetailView({ cari }: { cari: CariDetail }) {
           <CardHeader
             title={`İşlem Geçmişi (${cari.history.length})`}
             titleTypographyProps={{ variant: 'subtitle1', fontWeight: 700 }}
+            action={
+              <ToggleButtonGroup
+                size="small"
+                exclusive
+                value={filter}
+                onChange={(_e, v) => v && setFilter(v)}
+                sx={{ flexWrap: 'wrap' }}
+              >
+                <ToggleButton value="all">Tümü</ToggleButton>
+                <ToggleButton value="note">Notlar</ToggleButton>
+                <ToggleButton value="stage">Aşama</ToggleButton>
+                <ToggleButton value="other">Diğer</ToggleButton>
+              </ToggleButtonGroup>
+            }
           />
           <CardContent>
             {cari.history.length === 0 ? (
               <Typography color="text.secondary" variant="body2">
                 Henüz işlem yok.
+              </Typography>
+            ) : filteredHistory.length === 0 ? (
+              <Typography color="text.secondary" variant="body2">
+                Bu filtreye uygun işlem yok.
               </Typography>
             ) : (
               <Timeline
@@ -163,9 +191,9 @@ export default function CariDetailView({ cari }: { cari: CariDetail }) {
                   },
                 }}
               >
-                {cari.history.map((h, i) => {
+                {filteredHistory.map((h, i) => {
                   const style = ACTIVITY_STYLE[h.type]
-                  const isLast = i === cari.history.length - 1
+                  const isLast = i === filteredHistory.length - 1
                   return (
                     <TimelineItem key={h.id}>
                       <TimelineOppositeContent color="text.secondary">

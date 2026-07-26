@@ -1,21 +1,25 @@
 'use client'
 
 import * as React from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import Button from '@mui/material/Button'
 import Card from '@mui/material/Card'
 import TextField from '@mui/material/TextField'
 import MenuItem from '@mui/material/MenuItem'
 import Stack from '@mui/material/Stack'
+import MuiLink from '@mui/material/Link'
 import AddIcon from '@mui/icons-material/Add'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
 import TimelineOutlinedIcon from '@mui/icons-material/TimelineOutlined'
+import NoteAddOutlinedIcon from '@mui/icons-material/NoteAddOutlined'
 import { DataGrid, GridActionsCellItem, type GridColDef } from '@mui/x-data-grid'
 import PageHeader from '@/components/common/PageHeader'
 import ConfirmDialog from '@/components/common/ConfirmDialog'
 import LabelChip from '@/components/common/LabelChip'
 import CariFormDrawer from './CariFormDrawer'
+import QuickNoteDialog from './QuickNoteDialog'
 import { deleteCari } from '@/actions/cariler'
 import { CARI_STAGE, CARI_TYPE, toOptions } from '@/lib/labels'
 import { formatDate } from '@/lib/format'
@@ -40,6 +44,7 @@ export default function CarilerClient({
   const [editing, setEditing] = React.useState<CariRow | null>(null)
   const [toDelete, setToDelete] = React.useState<CariRow | null>(null)
   const [deleting, setDeleting] = React.useState(false)
+  const [noteTarget, setNoteTarget] = React.useState<CariRow | null>(null)
 
   const refresh = () => router.refresh()
   const filtered = rows.filter(
@@ -49,7 +54,23 @@ export default function CarilerClient({
   )
 
   const columns: GridColDef<CariRow>[] = [
-    { field: 'fullName', headerName: 'Ad Soyad', flex: 1.2, minWidth: 160 },
+    {
+      field: 'fullName',
+      headerName: 'Ad Soyad',
+      flex: 1.2,
+      minWidth: 160,
+      renderCell: (p) => (
+        <MuiLink
+          component={Link}
+          href={`/cariler/${p.row.id}`}
+          underline="hover"
+          color="inherit"
+          sx={{ fontWeight: 600 }}
+        >
+          {p.value}
+        </MuiLink>
+      ),
+    },
     {
       field: 'type',
       headerName: 'Tip',
@@ -78,8 +99,14 @@ export default function CarilerClient({
       field: 'actions',
       type: 'actions',
       headerName: '',
-      width: 130,
+      width: 160,
       getActions: (params) => [
+        <GridActionsCellItem
+          key="note"
+          icon={<NoteAddOutlinedIcon />}
+          label="Not Ekle"
+          onClick={() => setNoteTarget(params.row)}
+        />,
         <GridActionsCellItem
           key="timeline"
           icon={<TimelineOutlinedIcon />}
@@ -195,6 +222,16 @@ export default function CarilerClient({
         onConfirm={confirmDelete}
         onClose={() => setToDelete(null)}
       />
+
+      {noteTarget && (
+        <QuickNoteDialog
+          open={!!noteTarget}
+          cariId={noteTarget.id}
+          cariName={noteTarget.fullName}
+          onClose={() => setNoteTarget(null)}
+          onSuccess={refresh}
+        />
+      )}
     </>
   )
 }
