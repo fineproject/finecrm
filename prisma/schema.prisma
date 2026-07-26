@@ -1,0 +1,270 @@
+// ============================================================
+// FineCRM — Prisma Schema (PostgreSQL)
+// Hiyerarşi:  Company → Project → (Milestone / Cari)
+// Destek:     User, ActivityLog (audit), Notification (in-app + email sim.)
+// ============================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// ENUMS
+// ============================================================
+
+/// Projenin genel durumu
+enum ProjectStatus {
+  PENDING // Bekliyor
+  IN_PROGRESS // Devam Ediyor
+  COMPLETED // Tamamlandı
+  ON_HOLD // Beklemede
+  CANCELLED // İptal Edildi
+}
+
+/// Aşama (Milestone) durumu
+enum MilestoneStatus {
+  PENDING // Bekliyor
+  IN_PROGRESS // Devam Ediyor
+  COMPLETED // Tamamlandı
+  DELAYED // Gecikti
+}
+
+/// Cari satış / rehber hunisi aşaması (4 adımlı timeline)
+enum CariStage {
+  ADDED // Eklendi
+  INFO_GIVEN // Bilgi Verildi
+  CALLED_AGAIN // Tekrar Arandı
+  INVITED // Davet Edildi
+}
+
+/// Cari tipi
+enum CariType {
+  CUSTOMER // Müşteri
+  STAKEHOLDER // Paydaş
+  SUPPLIER // Tedarikçi
+}
+
+/// Uygulama kullanıcı rolü
+enum UserRole {
+  ADMIN
+  MANAGER
+  MEMBER
+}
+
+/// İşlem günlüğü (audit log) tipi
+enum ActivityType {
+  COMPANY_CREATED
+  COMPANY_UPDATED
+  PROJECT_CREATED
+  PROJECT_UPDATED
+  PROJECT_STATUS_CHANGED
+  MILESTONE_CREATED
+  MILESTONE_UPDATED
+  MILESTONE_COMPLETED
+  CARI_CREATED
+  CARI_UPDATED
+  CARI_STAGE_CHANGED
+  NOTE_ADDED
+}
+
+/// Bildirim kanalı
+enum NotificationChannel {
+  IN_APP
+  EMAIL
+}
+
+/// Bildirim durumu (email simülasyonu için yaşam döngüsü)
+enum NotificationStatus {
+  PENDING // Kuyruğa alındı
+  SENT // Gönderildi (simüle)
+  READ // Okundu
+  FAILED // Başarısız
+}
+
+// ============================================================
+// CORE MODELS
+// ============================================================
+
+/// Sistem kullanıcısı — işlemlerin sahibi ve bildirim alıcısı
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  role      UserRole @default(MEMBER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  activityLogs  ActivityLog[] // actor olarak gerçekleştirdiği işlemler
+  notifications Notification[] // kendisine gelen bildirimler
+
+  @@map("users")
+}
+
+/// Şirket — en üst seviye varlık
+model Company {
+  id        String   @id @default(cuid())
+  name      String
+  taxNumber String?
+  email     String?
+  phone     String?
+  address   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  projects     Project[]
+  activityLogs ActivityLog[]
+
+  @@index([name])
+  @@map("companies")
+}
+
+/// Proje — bir şirkete ait; tarih, bütçe ve durum bilgisi taşır
+model Project {
+  id          String        @id @default(cuid())
+  name        String
+  description String?
+  status      ProjectStatus @default(PENDING)
+  startDate   DateTime?
+  endDate     DateTime?
+  budget      Decimal?      @db.Decimal(14, 2)
+
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  milestones   Milestone[]
+  cariler      Cari[]
+  activityLogs ActivityLog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([companyId])
+  @@index([status])
+  @@map("projects")
+}
+
+/// Aşama (Milestone) — bir projenin ölçülebilir kilometre taşı
+model Milestone {
+  id          String          @id @default(cuid())
+  title       String
+  description String?
+  status      MilestoneStatus @default(PENDING)
+  order       Int             @default(0) // timeline sıralaması
+  dueDate     DateTime?
+  completedAt DateTime?
+
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  cariler      Cari[] // bu aşamada takip edilen cariler
+  activityLogs ActivityLog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([projectId])
+  @@index([status])
+  @@map("milestones")
+}
+
+/// Cari (Müşteri / Paydaş) — bir projeye bağlı; kendi hunisi + proje aşaması takibi
+model Cari {
+  id         String    @id @default(cuid())
+  firstName  String
+  lastName   String
+  phone      String?
+  email      String?
+  type       CariType  @default(CUSTOMER)
+  stage      CariStage @default(ADDED)
+  infoStatus String? // Verilen bilgi durumu
+
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  // Carinin şu an takip edildiği proje aşaması (opsiyonel bağ)
+  currentMilestoneId String?
+  currentMilestone   Milestone? @relation(fields: [currentMilestoneId], references: [id], onDelete: SetNull)
+
+  activityLogs  ActivityLog[]
+  notifications Notification[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([projectId])
+  @@index([stage])
+  @@index([currentMilestoneId])
+  @@map("cariler")
+}
+
+// ============================================================
+// AUDIT & NOTIFICATION
+// ============================================================
+
+/// İşlem günlüğü — raporlama ve bildirim tetikleyicisi
+/// İlgili varlık alanlarından (company/project/milestone/cari) hangisi
+/// geçerliyse o doldurulur; diğerleri null kalır (polimorfik audit).
+model ActivityLog {
+  id       String       @id @default(cuid())
+  type     ActivityType
+  message  String
+  metadata Json? // örn. { "from": "PENDING", "to": "IN_PROGRESS" }
+
+  actorId String?
+  actor   User?   @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  milestoneId String?
+  milestone   Milestone? @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
+
+  cariId String?
+  cari   Cari?   @relation(fields: [cariId], references: [id], onDelete: Cascade)
+
+  notifications Notification[]
+
+  createdAt DateTime @default(now())
+
+  @@index([type])
+  @@index([createdAt])
+  @@index([projectId])
+  @@index([cariId])
+  @@map("activity_logs")
+}
+
+/// Bildirim — in-app ve email (simülasyon) kanalları
+/// Alıcı kullanıcı ve/veya cari olabilir; bir ActivityLog tarafından tetiklenir.
+model Notification {
+  id      String              @id @default(cuid())
+  channel NotificationChannel @default(IN_APP)
+  status  NotificationStatus  @default(PENDING)
+  title   String
+  body    String
+
+  recipientUserId String?
+  recipientUser   User?   @relation(fields: [recipientUserId], references: [id], onDelete: SetNull)
+
+  recipientCariId String?
+  recipientCari   Cari?   @relation(fields: [recipientCariId], references: [id], onDelete: Cascade)
+
+  activityLogId String?
+  activityLog   ActivityLog? @relation(fields: [activityLogId], references: [id], onDelete: SetNull)
+
+  sentAt    DateTime?
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([recipientUserId])
+  @@index([recipientCariId])
+  @@index([status])
+  @@map("notifications")
+}
