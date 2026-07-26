@@ -7,7 +7,25 @@ import type {
   NotificationStatus,
   ProjectStatus,
   UserRole,
+  TaskStatus,
+  TaskPriority,
 } from '@prisma/client'
+
+export interface TaskRow {
+  id: string
+  title: string
+  description: string | null
+  status: TaskStatus
+  priority: TaskPriority
+  dueDate: string | null
+  assignedUserId: string | null
+  assignedUserName: string | null
+  cariId: string | null
+  cariName: string | null
+  projectId: string | null
+  projectName: string | null
+  createdAt: string
+}
 
 export interface UserRow {
   id: string
@@ -111,6 +129,7 @@ export interface ActivityRow {
   id: string
   type: ActivityType
   message: string
+  actorName: string | null
   companyName: string | null
   projectName: string | null
   cariName: string | null

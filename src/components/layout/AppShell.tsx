@@ -24,6 +24,8 @@ import NotificationsNoneOutlinedIcon from '@mui/icons-material/NotificationsNone
 import { NAV_ITEMS, labelForPath } from './navConfig'
 import ThemeToggle from './ThemeToggle'
 import UserMenu from './UserMenu'
+import { hasRole } from '@/lib/rbac'
+import type { UserRole } from '@prisma/client'
 
 const DRAWER_WIDTH = 264
 
@@ -31,6 +33,7 @@ export interface ShellUser {
   name: string
   email: string
   roleLabel: string
+  role: UserRole
 }
 
 function isActive(pathname: string, href: string, exact?: boolean) {
@@ -78,7 +81,7 @@ export default function AppShell({
       </Toolbar>
 
       <List sx={{ px: 1.5, py: 1, flex: 1 }}>
-        {NAV_ITEMS.map((item) => {
+        {NAV_ITEMS.filter((item) => !item.minRole || hasRole(user?.role, item.minRole)).map((item) => {
           const active = isActive(pathname, item.href, item.exact)
           return (
             <ListItem key={item.href} disablePadding sx={{ mb: 0.5 }}>

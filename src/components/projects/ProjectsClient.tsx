@@ -10,7 +10,7 @@ import MenuItem from '@mui/material/MenuItem'
 import AddIcon from '@mui/icons-material/Add'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
-import { DataGrid, GridActionsCellItem, type GridColDef } from '@mui/x-data-grid'
+import { DataGrid, GridActionsCellItem, GridToolbar, type GridColDef } from '@mui/x-data-grid'
 import PageHeader from '@/components/common/PageHeader'
 import ConfirmDialog from '@/components/common/ConfirmDialog'
 import LabelChip from '@/components/common/LabelChip'
@@ -137,6 +137,8 @@ export default function ProjectsClient({
           rows={filtered}
           columns={columns}
           disableRowSelectionOnClick
+          slots={{ toolbar: GridToolbar }}
+          slotProps={{ toolbar: { showQuickFilter: true, printOptions: { disableToolbarButton: true } } }}
           initialState={{ pagination: { paginationModel: { pageSize: 10 } } }}
           pageSizeOptions={[10, 25, 50]}
           sx={{ border: 0 }}

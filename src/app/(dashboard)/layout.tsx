@@ -23,6 +23,7 @@ export default async function DashboardLayout({
         name: session.user.name ?? 'Kullanıcı',
         email: session.user.email ?? '',
         roleLabel: USER_ROLE[session.user.role].label,
+        role: session.user.role,
       }
     : null
 

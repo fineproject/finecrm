@@ -73,6 +73,14 @@ export async function getCariDetail(id: string): Promise<CariDetail | null> {
   }
 }
 
+export async function cariOptions(): Promise<Option[]> {
+  const cariler = await prisma.cari.findMany({
+    orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }],
+    select: { id: true, firstName: true, lastName: true },
+  })
+  return cariler.map((c) => ({ id: c.id, label: `${c.firstName} ${c.lastName}` }))
+}
+
 export async function milestoneOptions(projectId: string): Promise<Option[]> {
   if (!projectId) return []
   const milestones = await prisma.milestone.findMany({

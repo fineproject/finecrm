@@ -13,12 +13,33 @@ export interface DispatchInput {
 const FROM = process.env.NOTIFICATION_FROM ?? 'no-reply@finecrm.local'
 
 /**
- * E-posta gönderimini simüle eder. Gerçek bir SMTP/servis yerine
- * terminale loglar; ileride burası Resend/Nodemailer ile değiştirilebilir.
+ * E-posta gönderir.
+ * - SMTP_HOST tanımlıysa Nodemailer ile GERÇEK gönderim yapılır.
+ * - Değilse terminale loglanarak simüle edilir.
  * Başarılı olursa true döner.
  */
-async function simulateEmail(to: string, subject: string, body: string): Promise<boolean> {
-  // Gerçek entegrasyonda try/catch ile hata durumu FAILED işaretlenir.
+async function sendEmail(to: string, subject: string, body: string): Promise<boolean> {
+  if (process.env.SMTP_HOST) {
+    try {
+      const nodemailer = await import('nodemailer')
+      const transporter = nodemailer.createTransport({
+        host: process.env.SMTP_HOST,
+        port: Number(process.env.SMTP_PORT ?? 587),
+        secure: process.env.SMTP_SECURE === 'true',
+        auth:
+          process.env.SMTP_USER && process.env.SMTP_PASS
+            ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
+            : undefined,
+      })
+      await transporter.sendMail({ from: FROM, to, subject, text: body })
+      return true
+    } catch (err) {
+      console.error('E-posta gönderilemedi:', err)
+      return false
+    }
+  }
+
+  // SMTP yoksa simülasyon
   // eslint-disable-next-line no-console
   console.info(
     `\n📧 [EMAIL SİMÜLASYON] from=${FROM} to=${to}\n   subject: ${subject}\n   body: ${body}\n`,
@@ -55,7 +76,7 @@ export async function dispatchNotification(input: DispatchInput) {
       } else if (input.recipientCariId) {
         to = (await prisma.cari.findUnique({ where: { id: input.recipientCariId } }))?.email ?? null
       }
-      const ok = to ? await simulateEmail(to, input.title, input.body) : false
+      const ok = to ? await sendEmail(to, input.title, input.body) : false
       return prisma.notification.update({
         where: { id: notification.id },
         data: ok

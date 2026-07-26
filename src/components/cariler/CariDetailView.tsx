@@ -26,17 +26,21 @@ import TimelineContent from '@mui/lab/TimelineContent'
 import TimelineOppositeContent from '@mui/lab/TimelineOppositeContent'
 import TimelineDot from '@mui/lab/TimelineDot'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
+import MenuItem from '@mui/material/MenuItem'
 import { addCariNote, setCariStage } from '@/actions/cariler'
-import { CARI_STAGE, CARI_TYPE, ACTIVITY_TYPE, ACTIVITY_STYLE, toOptions } from '@/lib/labels'
+import { CARI_STAGE, CARI_TYPE, ACTIVITY_TYPE, ACTIVITY_STYLE, INTERACTION_TYPE, toOptions, type InteractionType } from '@/lib/labels'
 import { formatDateTime, initials } from '@/lib/format'
 import type { CariDetail } from '@/types/dto'
 import type { CariStage } from '@prisma/client'
+
+const interactionOptions = toOptions(INTERACTION_TYPE)
 
 const stageSteps = toOptions(CARI_STAGE)
 
 export default function CariDetailView({ cari }: { cari: CariDetail }) {
   const router = useRouter()
   const [note, setNote] = React.useState('')
+  const [interaction, setInteraction] = React.useState<InteractionType>('NOTE')
   const [pending, startTransition] = React.useTransition()
 
   function changeStage(stage: CariStage) {
@@ -51,7 +55,7 @@ export default function CariDetailView({ cari }: { cari: CariDetail }) {
     e.preventDefault()
     if (!note.trim()) return
     startTransition(async () => {
-      await addCariNote(cari.id, note)
+      await addCariNote(cari.id, note, interaction)
       setNote('')
       router.refresh()
     })
@@ -132,6 +136,19 @@ export default function CariDetailView({ cari }: { cari: CariDetail }) {
             <CardHeader title="Not / İşlem Ekle" titleTypographyProps={{ variant: 'subtitle1', fontWeight: 700 }} />
             <CardContent sx={{ pt: 0 }}>
               <Box component="form" onSubmit={submitNote}>
+                <TextField
+                  select
+                  fullWidth
+                  size="small"
+                  label="Etkileşim Tipi"
+                  value={interaction}
+                  onChange={(e) => setInteraction(e.target.value as InteractionType)}
+                  sx={{ mb: 1 }}
+                >
+                  {interactionOptions.map((o) => (
+                    <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>
+                  ))}
+                </TextField>
                 <TextField
                   fullWidth
                   size="small"

@@ -14,12 +14,14 @@ import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
 import TimelineOutlinedIcon from '@mui/icons-material/TimelineOutlined'
 import NoteAddOutlinedIcon from '@mui/icons-material/NoteAddOutlined'
-import { DataGrid, GridActionsCellItem, type GridColDef } from '@mui/x-data-grid'
+import { DataGrid, GridActionsCellItem, GridToolbar, type GridColDef } from '@mui/x-data-grid'
 import PageHeader from '@/components/common/PageHeader'
 import ConfirmDialog from '@/components/common/ConfirmDialog'
 import LabelChip from '@/components/common/LabelChip'
+import UploadFileOutlinedIcon from '@mui/icons-material/UploadFileOutlined'
 import CariFormDrawer from './CariFormDrawer'
 import QuickNoteDialog from './QuickNoteDialog'
+import CariImportDialog from './CariImportDialog'
 import { deleteCari } from '@/actions/cariler'
 import { CARI_STAGE, CARI_TYPE, toOptions } from '@/lib/labels'
 import { formatDate } from '@/lib/format'
@@ -45,6 +47,7 @@ export default function CarilerClient({
   const [toDelete, setToDelete] = React.useState<CariRow | null>(null)
   const [deleting, setDeleting] = React.useState(false)
   const [noteTarget, setNoteTarget] = React.useState<CariRow | null>(null)
+  const [importOpen, setImportOpen] = React.useState(false)
 
   const refresh = () => router.refresh()
   const filtered = rows.filter(
@@ -150,17 +153,27 @@ export default function CarilerClient({
         title="Cariler"
         subtitle="Projelere bağlı müşteri/paydaşları ve satış aşamalarını yönetin"
         action={
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            disabled={projects.length === 0}
-            onClick={() => {
-              setEditing(null)
-              setDrawerOpen(true)
-            }}
-          >
-            Yeni Cari
-          </Button>
+          <Stack direction="row" spacing={1}>
+            <Button
+              variant="outlined"
+              startIcon={<UploadFileOutlinedIcon />}
+              disabled={projects.length === 0}
+              onClick={() => setImportOpen(true)}
+            >
+              İçe Aktar
+            </Button>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              disabled={projects.length === 0}
+              onClick={() => {
+                setEditing(null)
+                setDrawerOpen(true)
+              }}
+            >
+              Yeni Cari
+            </Button>
+          </Stack>
         }
       />
 
@@ -198,6 +211,8 @@ export default function CarilerClient({
           rows={filtered}
           columns={columns}
           disableRowSelectionOnClick
+          slots={{ toolbar: GridToolbar }}
+          slotProps={{ toolbar: { showQuickFilter: true, printOptions: { disableToolbarButton: true } } }}
           initialState={{ pagination: { paginationModel: { pageSize: 10 } } }}
           pageSizeOptions={[10, 25, 50]}
           sx={{ border: 0 }}
@@ -232,6 +247,13 @@ export default function CarilerClient({
           onSuccess={refresh}
         />
       )}
+
+      <CariImportDialog
+        open={importOpen}
+        projects={projects}
+        onClose={() => setImportOpen(false)}
+        onSuccess={refresh}
+      />
     </>
   )
 }

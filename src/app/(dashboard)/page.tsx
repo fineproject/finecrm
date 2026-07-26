@@ -17,7 +17,9 @@ import PageHeader from '@/components/common/PageHeader'
 import StatCard from '@/components/dashboard/StatCard'
 import ProjectStatusChart from '@/components/dashboard/ProjectStatusChart'
 import ActivityTrendChart from '@/components/dashboard/ActivityTrendChart'
+import TasksWidget from '@/components/dashboard/TasksWidget'
 import { getDashboardStats } from '@/server/reports'
+import { getTaskDashboard } from '@/server/tasks'
 import { PROJECT_STATUS, CARI_STAGE, ACTIVITY_TYPE } from '@/lib/labels'
 import { formatCurrency, formatDateTime } from '@/lib/format'
 
@@ -25,8 +27,9 @@ export const dynamic = 'force-dynamic'
 
 export default async function DashboardPage() {
   let stats
+  let tasks
   try {
-    stats = await getDashboardStats()
+    ;[stats, tasks] = await Promise.all([getDashboardStats(), getTaskDashboard()])
   } catch {
     return (
       <>
@@ -129,6 +132,9 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
       </Box>
+
+      {/* Görev hatırlatmaları */}
+      <TasksWidget data={tasks} />
 
       {/* Cari aşama dağılımı + son işlemler */}
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>

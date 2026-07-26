@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { logActivity } from '@/lib/activity'
+import { requireRole } from '@/lib/authz'
 
 export interface CompanyInput {
   name: string
@@ -54,6 +55,7 @@ export async function updateCompany(id: string, input: CompanyInput) {
 }
 
 export async function deleteCompany(id: string) {
+  await requireRole('MANAGER')
   const company = await prisma.company.delete({ where: { id } })
   await logActivity({
     type: 'COMPANY_UPDATED',

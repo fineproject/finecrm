@@ -6,6 +6,11 @@
 
 - **Kimlik Doğrulama** — Auth.js (NextAuth v5) credentials girişi; korunmuş rotalar (middleware), rol tabanlı yetki.
 - **Kullanıcı Yönetimi** — kullanıcı oluşturma/düzenleme/silme (yalnızca Yönetici); rol atama (Yönetici / Müdür / Üye), bcrypt ile şifre.
+- **Görev & Hatırlatma** — cari/projeye bağlı görevler, öncelik, son tarih, atanan kullanıcı; vadesi geçenler vurgulanır; dashboard'da "Geciken / Bugün / Bu Hafta" widget'ı.
+- **Etkileşim Kayıtları** — cari notları arama / e-posta / toplantı / not tipiyle etiketlenir ve timeline'da görünür.
+- **Gerçek E-posta (SMTP)** — `SMTP_HOST` tanımlıysa Nodemailer ile gerçek gönderim, aksi halde simülasyon.
+- **RBAC & Denetim** — rol tabanlı menü/işlem erişimi (silme işlemleri Müdür+); tüm hareketler için Denetim (Audit) sayfası (kim/ne zaman/ne).
+- **İçe/Dışa Aktarım** — tüm tablolarda hızlı filtre + CSV dışa aktarım (DataGrid toolbar); carileri CSV'den toplu içe aktarma.
 - **Şirket Yönetimi** — CRUD, DataGrid listeleme (sıralama/filtre/sayfalama).
 - **Proje Yönetimi** — şirkete bağlı projeler; başlangıç/bitiş tarihi, bütçe, durum (Bekliyor / Devam Ediyor / Tamamlandı / Beklemede / İptal).
 - **Cari Yönetimi** — projeye bağlı müşteri/paydaş; satış hunisi aşaması (Eklendi → Bilgi Verildi → Tekrar Arandı → Davet Edildi) ve bağlı proje aşaması takibi.

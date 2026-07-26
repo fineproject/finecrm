@@ -7,9 +7,13 @@ import DialogTitle from '@mui/material/DialogTitle'
 import DialogContent from '@mui/material/DialogContent'
 import DialogActions from '@mui/material/DialogActions'
 import TextField from '@mui/material/TextField'
+import MenuItem from '@mui/material/MenuItem'
 import Button from '@mui/material/Button'
 import Alert from '@mui/material/Alert'
 import { addCariNote } from '@/actions/cariler'
+import { INTERACTION_TYPE, toOptions, type InteractionType } from '@/lib/labels'
+
+const interactionOptions = toOptions(INTERACTION_TYPE)
 
 interface Props {
   open: boolean
@@ -21,12 +25,14 @@ interface Props {
 
 export default function QuickNoteDialog({ open, cariId, cariName, onClose, onSuccess }: Props) {
   const [note, setNote] = React.useState('')
+  const [interaction, setInteraction] = React.useState<InteractionType>('NOTE')
   const [error, setError] = React.useState<string | null>(null)
   const [pending, startTransition] = React.useTransition()
 
   React.useEffect(() => {
     if (open) {
       setNote('')
+      setInteraction('NOTE')
       setError(null)
     }
   }, [open])
@@ -37,7 +43,7 @@ export default function QuickNoteDialog({ open, cariId, cariName, onClose, onSuc
     setError(null)
     startTransition(async () => {
       try {
-        await addCariNote(cariId, note)
+        await addCariNote(cariId, note, interaction)
         onSuccess()
         onClose()
       } catch (err) {
@@ -53,6 +59,18 @@ export default function QuickNoteDialog({ open, cariId, cariName, onClose, onSuc
         <DialogContent>
           {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
           <TextField
+            select
+            fullWidth
+            label="Etkileşim Tipi"
+            value={interaction}
+            onChange={(e) => setInteraction(e.target.value as InteractionType)}
+            sx={{ mt: 1, mb: 2 }}
+          >
+            {interactionOptions.map((o) => (
+              <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>
+            ))}
+          </TextField>
+          <TextField
             autoFocus
             fullWidth
             multiline
@@ -60,7 +78,6 @@ export default function QuickNoteDialog({ open, cariId, cariName, onClose, onSuc
             placeholder="Örn. Telefonla arandı, ulaşılamadı; yarın tekrar aranacak."
             value={note}
             onChange={(e) => setNote(e.target.value)}
-            sx={{ mt: 1 }}
           />
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>

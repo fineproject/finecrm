@@ -138,6 +138,38 @@ async function main() {
     }),
   ])
 
+  // --- Örnek görevler (hatırlatmalar) ---
+  const day = 24 * 60 * 60 * 1000
+  await prisma.task.createMany({
+    data: [
+      {
+        title: 'Ahmet Yılmaz geri arama',
+        description: 'Fiyat teklifi için tekrar aranacak',
+        status: 'PENDING',
+        priority: 'HIGH',
+        dueDate: new Date(Date.now() - day), // gecikmiş
+        assignedUserId: admin.id,
+        cariId: cariler[0].id,
+        projectId: bahcesehir.id,
+      },
+      {
+        title: 'Ayşe Demir satış ofisi randevusu',
+        status: 'PENDING',
+        priority: 'MEDIUM',
+        dueDate: new Date(), // bugün
+        cariId: cariler[1].id,
+        projectId: bahcesehir.id,
+      },
+      {
+        title: 'Merkez Plaza sunum hazırlığı',
+        status: 'PENDING',
+        priority: 'LOW',
+        dueDate: new Date(Date.now() + 3 * day), // bu hafta
+        projectId: plaza.id,
+      },
+    ],
+  })
+
   // --- Örnek işlem günlükleri ---
   await prisma.activityLog.createMany({
     data: [

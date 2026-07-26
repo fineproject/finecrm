@@ -3,7 +3,8 @@
 import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { logActivity } from '@/lib/activity'
-import { CARI_STAGE } from '@/lib/labels'
+import { requireRole } from '@/lib/authz'
+import { CARI_STAGE, INTERACTION_TYPE, type InteractionType } from '@/lib/labels'
 import type { CariStage, CariType } from '@prisma/client'
 
 export interface CariInput {
@@ -84,13 +85,18 @@ export async function setCariStage(id: string, stage: CariStage) {
   return { id }
 }
 
-export async function addCariNote(cariId: string, note: string) {
+export async function addCariNote(
+  cariId: string,
+  note: string,
+  interaction: InteractionType = 'NOTE',
+) {
   const text = note.trim()
   if (!text) throw new Error('Not boş olamaz.')
   const cari = await prisma.cari.findUniqueOrThrow({ where: { id: cariId } })
   await logActivity({
     type: 'NOTE_ADDED',
-    message: text,
+    message: `[${INTERACTION_TYPE[interaction].label}] ${text}`,
+    metadata: { interaction },
     projectId: cari.projectId,
     cariId: cari.id,
   })
@@ -101,6 +107,7 @@ export async function addCariNote(cariId: string, note: string) {
 }
 
 export async function deleteCari(id: string) {
+  await requireRole('MANAGER')
   const cari = await prisma.cari.delete({ where: { id } })
   await logActivity({
     type: 'CARI_UPDATED',

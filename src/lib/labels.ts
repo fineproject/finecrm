@@ -9,7 +9,12 @@ import type {
   ActivityType,
   NotificationStatus,
   UserRole,
+  TaskStatus,
+  TaskPriority,
 } from '@prisma/client'
+
+// Etkileşim tipi ayrı bir DB kolonu değil; ActivityLog.metadata içinde saklanır.
+export type InteractionType = 'CALL' | 'EMAIL' | 'MEETING' | 'NOTE'
 
 type MuiColor = 'default' | 'primary' | 'secondary' | 'success' | 'warning' | 'error' | 'info'
 
@@ -45,6 +50,25 @@ export const CARI_TYPE: Record<CariType, Meta> = {
   CUSTOMER: { label: 'Müşteri', color: 'primary' },
   STAKEHOLDER: { label: 'Paydaş', color: 'secondary' },
   SUPPLIER: { label: 'Tedarikçi', color: 'info' },
+}
+
+export const TASK_STATUS: Record<TaskStatus, Meta> = {
+  PENDING: { label: 'Bekliyor', color: 'warning', hex: '#f59e0b' },
+  DONE: { label: 'Tamamlandı', color: 'success', hex: '#10b981' },
+  CANCELLED: { label: 'İptal', color: 'default', hex: '#64748b' },
+}
+
+export const TASK_PRIORITY: Record<TaskPriority, Meta> = {
+  LOW: { label: 'Düşük', color: 'default' },
+  MEDIUM: { label: 'Orta', color: 'info' },
+  HIGH: { label: 'Yüksek', color: 'error' },
+}
+
+export const INTERACTION_TYPE: Record<InteractionType, Meta> = {
+  CALL: { label: 'Arama', color: 'primary' },
+  EMAIL: { label: 'E-posta', color: 'secondary' },
+  MEETING: { label: 'Toplantı', color: 'info' },
+  NOTE: { label: 'Not', color: 'warning' },
 }
 
 export const USER_ROLE: Record<UserRole, Meta> = {

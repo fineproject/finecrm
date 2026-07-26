@@ -8,7 +8,7 @@ import Card from '@mui/material/Card'
 import AddIcon from '@mui/icons-material/Add'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
-import { DataGrid, GridActionsCellItem, type GridColDef } from '@mui/x-data-grid'
+import { DataGrid, GridActionsCellItem, GridToolbar, type GridColDef } from '@mui/x-data-grid'
 import PageHeader from '@/components/common/PageHeader'
 import ConfirmDialog from '@/components/common/ConfirmDialog'
 import CompanyFormDrawer from './CompanyFormDrawer'
@@ -99,6 +99,8 @@ export default function CompaniesClient({ rows }: { rows: CompanyRow[] }) {
           rows={rows}
           columns={columns}
           disableRowSelectionOnClick
+          slots={{ toolbar: GridToolbar }}
+          slotProps={{ toolbar: { showQuickFilter: true, printOptions: { disableToolbarButton: true } } }}
           initialState={{ pagination: { paginationModel: { pageSize: 10 } } }}
           pageSizeOptions={[10, 25, 50]}
           sx={{ border: 0 }}

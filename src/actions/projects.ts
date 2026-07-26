@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { logActivity } from '@/lib/activity'
+import { requireRole } from '@/lib/authz'
 import { PROJECT_STATUS } from '@/lib/labels'
 import type { ProjectStatus } from '@prisma/client'
 
@@ -81,6 +82,7 @@ export async function setProjectStatus(id: string, status: ProjectStatus) {
 }
 
 export async function deleteProject(id: string) {
+  await requireRole('MANAGER')
   const project = await prisma.project.delete({ where: { id } })
   await logActivity({
     type: 'PROJECT_UPDATED',

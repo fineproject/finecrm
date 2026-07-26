@@ -285,6 +285,7 @@ export async function listActivities(opts?: {
     orderBy: { createdAt: 'desc' },
     take: 300,
     include: {
+      actor: { select: { name: true } },
       company: { select: { name: true } },
       project: { select: { name: true } },
       cari: { select: { firstName: true, lastName: true } },
@@ -298,6 +299,7 @@ type LogWithRelations = {
   type: ActivityType
   message: string
   createdAt: Date
+  actor?: { name: string } | null
   company: { name: string } | null
   project: { name: string } | null
   cari: { firstName: string; lastName: string } | null
@@ -308,6 +310,7 @@ function mapActivity(log: LogWithRelations): ActivityRow {
     id: log.id,
     type: log.type,
     message: log.message,
+    actorName: log.actor?.name ?? null,
     companyName: log.company?.name ?? null,
     projectName: log.project?.name ?? null,
     cariName: log.cari ? `${log.cari.firstName} ${log.cari.lastName}` : null,
