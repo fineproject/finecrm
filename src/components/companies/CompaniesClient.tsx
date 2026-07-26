@@ -16,7 +16,13 @@ import { deleteCompany } from '@/actions/companies'
 import { formatDate } from '@/lib/format'
 import type { CompanyRow } from '@/types/dto'
 
-export default function CompaniesClient({ rows }: { rows: CompanyRow[] }) {
+export default function CompaniesClient({
+  rows,
+  canManage = false,
+}: {
+  rows: CompanyRow[]
+  canManage?: boolean
+}) {
   const router = useRouter()
   const [drawerOpen, setDrawerOpen] = React.useState(false)
   const [editing, setEditing] = React.useState<CompanyRow | null>(null)
@@ -43,23 +49,26 @@ export default function CompaniesClient({ rows }: { rows: CompanyRow[] }) {
       type: 'actions',
       headerName: '',
       width: 90,
-      getActions: (params) => [
-        <GridActionsCellItem
-          key="edit"
-          icon={<EditOutlinedIcon />}
-          label="Düzenle"
-          onClick={() => {
-            setEditing(params.row)
-            setDrawerOpen(true)
-          }}
-        />,
-        <GridActionsCellItem
-          key="delete"
-          icon={<DeleteOutlineIcon />}
-          label="Sil"
-          onClick={() => setToDelete(params.row)}
-        />,
-      ],
+      getActions: (params) =>
+        canManage
+          ? [
+              <GridActionsCellItem
+                key="edit"
+                icon={<EditOutlinedIcon />}
+                label="Düzenle"
+                onClick={() => {
+                  setEditing(params.row)
+                  setDrawerOpen(true)
+                }}
+              />,
+              <GridActionsCellItem
+                key="delete"
+                icon={<DeleteOutlineIcon />}
+                label="Sil"
+                onClick={() => setToDelete(params.row)}
+              />,
+            ]
+          : [],
     },
   ]
 
@@ -81,16 +90,18 @@ export default function CompaniesClient({ rows }: { rows: CompanyRow[] }) {
         title="Şirketler"
         subtitle="Şirketleri ekleyin, düzenleyin ve projelerini takip edin"
         action={
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => {
-              setEditing(null)
-              setDrawerOpen(true)
-            }}
-          >
-            Yeni Şirket
-          </Button>
+          canManage ? (
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => {
+                setEditing(null)
+                setDrawerOpen(true)
+              }}
+            >
+              Yeni Şirket
+            </Button>
+          ) : undefined
         }
       />
 

@@ -4,8 +4,17 @@ import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { logActivity } from '@/lib/activity'
 import { requireRole } from '@/lib/authz'
+import { getScope } from '@/server/access'
 import { PROJECT_STATUS } from '@/lib/labels'
 import type { ProjectStatus } from '@prisma/client'
+
+// Müdür yalnızca erişebildiği şirketlere proje ekleyebilir/düzenleyebilir
+async function assertCompanyInScope(companyId: string) {
+  const scope = await getScope()
+  if (!scope.all && !scope.companyIds.includes(companyId)) {
+    throw new Error('Bu şirkete işlem yapma yetkiniz yok.')
+  }
+}
 
 export interface ProjectInput {
   companyId: string
@@ -39,6 +48,8 @@ function revalidate() {
 }
 
 export async function createProject(input: ProjectInput) {
+  await requireRole('MANAGER')
+  await assertCompanyInScope(input.companyId)
   const data = clean(input)
   const project = await prisma.project.create({ data })
   await logActivity({
@@ -52,7 +63,10 @@ export async function createProject(input: ProjectInput) {
 }
 
 export async function updateProject(id: string, input: ProjectInput) {
+  await requireRole('MANAGER')
   const existing = await prisma.project.findUniqueOrThrow({ where: { id } })
+  await assertCompanyInScope(existing.companyId)
+  await assertCompanyInScope(input.companyId)
   const data = clean(input)
   const project = await prisma.project.update({ where: { id }, data })
 
@@ -73,7 +87,9 @@ export async function updateProject(id: string, input: ProjectInput) {
 }
 
 export async function setProjectStatus(id: string, status: ProjectStatus) {
+  await requireRole('MANAGER')
   const existing = await prisma.project.findUniqueOrThrow({ where: { id } })
+  await assertCompanyInScope(existing.companyId)
   if (existing.status === status) return { id }
   const project = await prisma.project.update({ where: { id }, data: { status } })
   await notifyStatusChange(project.id, existing.status, status)
@@ -83,6 +99,8 @@ export async function setProjectStatus(id: string, status: ProjectStatus) {
 
 export async function deleteProject(id: string) {
   await requireRole('MANAGER')
+  const existing = await prisma.project.findUniqueOrThrow({ where: { id } })
+  await assertCompanyInScope(existing.companyId)
   const project = await prisma.project.delete({ where: { id } })
   await logActivity({
     type: 'PROJECT_UPDATED',

@@ -254,6 +254,9 @@ model ActivityLog {
   cariId String?
   cari   Cari?   @relation(fields: [cariId], references: [id], onDelete: Cascade)
 
+  taskId String?
+  task   Task?   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
   notifications Notification[]
 
   createdAt DateTime @default(now())
@@ -262,6 +265,7 @@ model ActivityLog {
   @@index([createdAt])
   @@index([projectId])
   @@index([cariId])
+  @@index([taskId])
   @@map("activity_logs")
 }
 
@@ -311,6 +315,8 @@ model Task {
 
   projectId String?
   project   Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  activityLogs ActivityLog[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

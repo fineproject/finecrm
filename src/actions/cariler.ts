@@ -3,9 +3,18 @@
 import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { logActivity } from '@/lib/activity'
-import { requireRole } from '@/lib/authz'
+import { requireRole, requireAuth } from '@/lib/authz'
+import { getScope } from '@/server/access'
 import { CARI_STAGE, INTERACTION_TYPE, type InteractionType } from '@/lib/labels'
 import type { CariStage, CariType } from '@prisma/client'
+
+// Kullanıcı yalnızca erişebildiği projelerin carilerinde işlem yapabilir
+async function assertProjectInScope(projectId: string) {
+  const scope = await getScope()
+  if (!scope.all && !scope.projectIds.includes(projectId)) {
+    throw new Error('Bu projede işlem yapma yetkiniz yok.')
+  }
+}
 
 export interface CariInput {
   projectId: string
@@ -44,6 +53,8 @@ function revalidate() {
 }
 
 export async function createCari(input: CariInput) {
+  await requireAuth()
+  await assertProjectInScope(input.projectId)
   const data = clean(input)
   const cari = await prisma.cari.create({ data })
   await logActivity({
@@ -57,7 +68,10 @@ export async function createCari(input: CariInput) {
 }
 
 export async function updateCari(id: string, input: CariInput) {
+  await requireAuth()
   const existing = await prisma.cari.findUniqueOrThrow({ where: { id } })
+  await assertProjectInScope(existing.projectId)
+  await assertProjectInScope(input.projectId)
   const data = clean(input)
   const cari = await prisma.cari.update({ where: { id }, data })
 

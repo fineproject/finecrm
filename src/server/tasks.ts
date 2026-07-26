@@ -1,12 +1,12 @@
 import { prisma } from '@/lib/prisma'
-import type { Option, TaskRow } from '@/types/dto'
+import type { Option, TaskDetail, TaskRow } from '@/types/dto'
 import type { Prisma, TaskStatus } from '@prisma/client'
 import { getScope } from './access'
 import { getSessionUser } from '@/lib/authz'
 
 // Görev kapsamı: ADMIN tümünü; diğerleri erişilebilir projelerdeki veya
 // kendisine atanmış görevleri görür.
-async function taskScopeWhere(): Promise<Prisma.TaskWhereInput> {
+export async function taskScopeWhere(): Promise<Prisma.TaskWhereInput> {
   const user = await getSessionUser()
   if (!user) return { id: '__none__' }
   if (user.role === 'ADMIN') return {}
@@ -106,4 +106,64 @@ export async function getTaskDashboard(): Promise<TaskDashboard> {
 export async function userOptions(): Promise<Option[]> {
   const users = await prisma.user.findMany({ orderBy: { name: 'asc' }, select: { id: true, name: true } })
   return users.map((u) => ({ id: u.id, label: u.name }))
+}
+
+/**
+ * Görev atanabilecek kullanıcılar:
+ * - ADMIN: tüm kullanıcılar
+ * - MANAGER: erişilebilir şirket/projelere bağlı satış temsilcileri (MEMBER) + kendisi
+ * - MEMBER: yalnızca kendisi
+ */
+export async function assignableUsers(): Promise<Option[]> {
+  const user = await getSessionUser()
+  if (!user) return []
+
+  if (user.role === 'ADMIN') {
+    const all = await prisma.user.findMany({ orderBy: { name: 'asc' }, select: { id: true, name: true } })
+    return all.map((u) => ({ id: u.id, label: u.name }))
+  }
+
+  const selfOpt: Option = { id: user.id, label: `${user.name ?? user.email ?? 'Ben'} (ben)` }
+  if (user.role === 'MEMBER') return [selfOpt]
+
+  // MANAGER
+  const scope = await getScope()
+  const members = await prisma.user.findMany({
+    where: {
+      role: 'MEMBER',
+      OR: [
+        { accessCompanies: { some: { id: { in: scope.companyIds } } } },
+        { accessProjects: { some: { id: { in: scope.projectIds } } } },
+      ],
+    },
+    orderBy: { name: 'asc' },
+    select: { id: true, name: true },
+  })
+  const opts = members.map((m) => ({ id: m.id, label: m.name }))
+  if (!opts.some((o) => o.id === user.id)) opts.unshift(selfOpt)
+  return opts
+}
+
+export async function getTaskDetail(id: string): Promise<TaskDetail | null> {
+  const t = await prisma.task.findFirst({
+    where: { AND: [await taskScopeWhere(), { id }] },
+    include: {
+      ...include,
+      activityLogs: {
+        where: { type: 'NOTE_ADDED' },
+        orderBy: { createdAt: 'desc' },
+        include: { actor: { select: { name: true } } },
+      },
+    },
+  })
+  if (!t) return null
+  return {
+    ...mapTask(t),
+    notes: t.activityLogs.map((a) => ({
+      id: a.id,
+      message: a.message,
+      actorName: a.actor?.name ?? null,
+      createdAt: a.createdAt.toISOString(),
+    })),
+  }
 }

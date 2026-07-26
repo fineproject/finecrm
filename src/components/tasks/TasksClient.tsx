@@ -1,15 +1,18 @@
 'use client'
 
 import * as React from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import Button from '@mui/material/Button'
 import Card from '@mui/material/Card'
 import TextField from '@mui/material/TextField'
 import MenuItem from '@mui/material/MenuItem'
+import MuiLink from '@mui/material/Link'
 import AddIcon from '@mui/icons-material/Add'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline'
+import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined'
 import { DataGrid, GridActionsCellItem, GridToolbar, type GridColDef } from '@mui/x-data-grid'
 import PageHeader from '@/components/common/PageHeader'
 import ConfirmDialog from '@/components/common/ConfirmDialog'
@@ -43,7 +46,17 @@ export default function TasksClient({
   const filtered = statusFilter ? rows.filter((r) => r.status === statusFilter) : rows
 
   const columns: GridColDef<TaskRow>[] = [
-    { field: 'title', headerName: 'Başlık', flex: 1.4, minWidth: 180 },
+    {
+      field: 'title',
+      headerName: 'Başlık',
+      flex: 1.4,
+      minWidth: 180,
+      renderCell: (p) => (
+        <MuiLink component={Link} href={`/tasks/${p.row.id}`} underline="hover" color="inherit" sx={{ fontWeight: 600 }}>
+          {p.value}
+        </MuiLink>
+      ),
+    },
     {
       field: 'status',
       headerName: 'Durum',
@@ -79,8 +92,14 @@ export default function TasksClient({
       field: 'actions',
       type: 'actions',
       headerName: '',
-      width: 130,
+      width: 160,
       getActions: (params) => [
+        <GridActionsCellItem
+          key="detail"
+          icon={<VisibilityOutlinedIcon />}
+          label="Detay"
+          onClick={() => router.push(`/tasks/${params.row.id}`)}
+        />,
         <GridActionsCellItem
           key="done"
           icon={<CheckCircleOutlineIcon />}

@@ -31,6 +31,7 @@ function revalidate() {
 }
 
 export async function createCompany(input: CompanyInput) {
+  await requireRole('ADMIN')
   const data = clean(input)
   const company = await prisma.company.create({ data })
   await logActivity({
@@ -43,6 +44,7 @@ export async function createCompany(input: CompanyInput) {
 }
 
 export async function updateCompany(id: string, input: CompanyInput) {
+  await requireRole('ADMIN')
   const data = clean(input)
   const company = await prisma.company.update({ where: { id }, data })
   await logActivity({
@@ -55,7 +57,7 @@ export async function updateCompany(id: string, input: CompanyInput) {
 }
 
 export async function deleteCompany(id: string) {
-  await requireRole('MANAGER')
+  await requireRole('ADMIN')
   const company = await prisma.company.delete({ where: { id } })
   await logActivity({
     type: 'COMPANY_UPDATED',

@@ -24,9 +24,11 @@ import type { ProjectStatus } from '@prisma/client'
 export default function ProjectsClient({
   rows,
   companies,
+  canManage = false,
 }: {
   rows: ProjectRow[]
   companies: Option[]
+  canManage?: boolean
 }) {
   const router = useRouter()
   const [companyFilter, setCompanyFilter] = React.useState('')
@@ -66,23 +68,26 @@ export default function ProjectsClient({
       type: 'actions',
       headerName: '',
       width: 90,
-      getActions: (params) => [
-        <GridActionsCellItem
-          key="edit"
-          icon={<EditOutlinedIcon />}
-          label="Düzenle"
-          onClick={() => {
-            setEditing(params.row)
-            setDrawerOpen(true)
-          }}
-        />,
-        <GridActionsCellItem
-          key="delete"
-          icon={<DeleteOutlineIcon />}
-          label="Sil"
-          onClick={() => setToDelete(params.row)}
-        />,
-      ],
+      getActions: (params) =>
+        canManage
+          ? [
+              <GridActionsCellItem
+                key="edit"
+                icon={<EditOutlinedIcon />}
+                label="Düzenle"
+                onClick={() => {
+                  setEditing(params.row)
+                  setDrawerOpen(true)
+                }}
+              />,
+              <GridActionsCellItem
+                key="delete"
+                icon={<DeleteOutlineIcon />}
+                label="Sil"
+                onClick={() => setToDelete(params.row)}
+              />,
+            ]
+          : [],
     },
   ]
 
@@ -104,17 +109,19 @@ export default function ProjectsClient({
         title="Projeler"
         subtitle="Şirketlere ait projeleri, durum, tarih ve bütçeleriyle yönetin"
         action={
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            disabled={companies.length === 0}
-            onClick={() => {
-              setEditing(null)
-              setDrawerOpen(true)
-            }}
-          >
-            Yeni Proje
-          </Button>
+          canManage ? (
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              disabled={companies.length === 0}
+              onClick={() => {
+                setEditing(null)
+                setDrawerOpen(true)
+              }}
+            >
+              Yeni Proje
+            </Button>
+          ) : undefined
         }
       />
 

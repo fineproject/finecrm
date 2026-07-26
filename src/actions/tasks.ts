@@ -3,7 +3,19 @@
 import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/authz'
+import { getScope } from '@/server/access'
+import { assignableUsers } from '@/server/tasks'
+import { logActivity } from '@/lib/activity'
 import type { TaskPriority, TaskStatus } from '@prisma/client'
+
+// Atama yetkisi: assignedUserId, atanabilir kullanıcılar arasında olmalı
+async function assertCanAssign(assignedUserId: string | null) {
+  if (!assignedUserId) return
+  const allowed = await assignableUsers()
+  if (!allowed.some((a) => a.id === assignedUserId)) {
+    throw new Error('Bu kullanıcıya görev atayamazsınız.')
+  }
+}
 
 export interface TaskInput {
   title: string
@@ -37,21 +49,53 @@ function revalidate() {
 }
 
 export async function createTask(input: TaskInput) {
-  await requireAuth()
-  const task = await prisma.task.create({ data: clean(input) })
+  const user = await requireAuth()
+  // Üye yalnızca kendine görev oluşturabilir
+  const assignedUserId = user.role === 'MEMBER' ? user.id : input.assignedUserId || null
+  await assertCanAssign(assignedUserId)
+  const task = await prisma.task.create({ data: clean({ ...input, assignedUserId }) })
   revalidate()
   return { id: task.id }
 }
 
 export async function updateTask(id: string, input: TaskInput) {
-  await requireAuth()
-  const data = clean(input)
+  const user = await requireAuth()
+  const assignedUserId = user.role === 'MEMBER' ? user.id : input.assignedUserId || null
+  await assertCanAssign(assignedUserId)
+  const data = clean({ ...input, assignedUserId })
   await prisma.task.update({
     where: { id },
     data: { ...data, completedAt: data.status === 'DONE' ? new Date() : null },
   })
   revalidate()
   return { id }
+}
+
+export async function addTaskNote(taskId: string, note: string) {
+  const user = await requireAuth()
+  const text = note.trim()
+  if (!text) throw new Error('Not boş olamaz.')
+
+  const task = await prisma.task.findUniqueOrThrow({ where: { id: taskId } })
+  if (user.role !== 'ADMIN') {
+    const scope = await getScope()
+    const ok =
+      task.assignedUserId === user.id ||
+      (!!task.projectId && scope.projectIds.includes(task.projectId))
+    if (!ok) throw new Error('Bu göreve erişiminiz yok.')
+  }
+
+  await logActivity({
+    type: 'NOTE_ADDED',
+    message: text,
+    taskId: task.id,
+    projectId: task.projectId ?? undefined,
+    cariId: task.cariId ?? undefined,
+    actorId: user.id,
+  })
+  revalidatePath(`/tasks/${taskId}`)
+  revalidatePath('/tasks')
+  return { ok: true }
 }
 
 export async function completeTask(id: string) {

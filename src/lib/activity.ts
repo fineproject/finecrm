@@ -11,6 +11,7 @@ export interface LogActivityInput {
   projectId?: string | null
   milestoneId?: string | null
   cariId?: string | null
+  taskId?: string | null
   /** İşlem sonrası tetiklenecek bildirimler (in-app / email) */
   notify?: Omit<DispatchInput, 'activityLogId'>[]
 }
@@ -31,6 +32,7 @@ export async function logActivity(input: LogActivityInput) {
       projectId: input.projectId ?? null,
       milestoneId: input.milestoneId ?? null,
       cariId: input.cariId ?? null,
+      taskId: input.taskId ?? null,
     },
   })
 

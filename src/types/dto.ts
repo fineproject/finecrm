@@ -27,6 +27,17 @@ export interface TaskRow {
   createdAt: string
 }
 
+export interface TaskNote {
+  id: string
+  message: string
+  actorName: string | null
+  createdAt: string
+}
+
+export interface TaskDetail extends TaskRow {
+  notes: TaskNote[]
+}
+
 export interface UserRow {
   id: string
   email: string
