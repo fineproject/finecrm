@@ -1,8 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { useRouter } from 'next/navigation'
-import { signIn } from 'next-auth/react'
+import { authenticate } from '@/actions/auth'
 import Box from '@mui/material/Box'
 import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
@@ -14,7 +13,6 @@ import Avatar from '@mui/material/Avatar'
 import Alert from '@mui/material/Alert'
 
 export default function LoginPage() {
-  const router = useRouter()
   const [email, setEmail] = React.useState('')
   const [password, setPassword] = React.useState('')
   const [error, setError] = React.useState<string | null>(null)
@@ -25,16 +23,15 @@ export default function LoginPage() {
     setError(null)
     setLoading(true)
     try {
-      const res = await signIn('credentials', { email, password, redirect: false })
+      // Başarılı girişte server action yönlendirme fırlatır (buraya dönmez)
+      const res = await authenticate(email, password)
       if (res?.error) {
-        setError('E-posta veya şifre hatalı.')
-      } else {
-        router.push('/')
-        router.refresh()
+        setError(res.error)
+        setLoading(false)
       }
     } catch {
+      // Yönlendirme dışı beklenmeyen hata
       setError('Giriş sırasında bir hata oluştu.')
-    } finally {
       setLoading(false)
     }
   }

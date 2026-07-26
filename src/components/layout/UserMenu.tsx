@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { signOut } from 'next-auth/react'
+import { doSignOut } from '@/actions/auth'
 import Box from '@mui/material/Box'
 import Avatar from '@mui/material/Avatar'
 import Menu from '@mui/material/Menu'
@@ -45,7 +45,7 @@ export default function UserMenu({
           <Typography variant="caption" color="primary">{roleLabel}</Typography>
         </Box>
         <Divider />
-        <MenuItem onClick={() => signOut({ callbackUrl: '/login' })}>
+        <MenuItem onClick={() => doSignOut()}>
           <ListItemIcon>
             <LogoutOutlinedIcon fontSize="small" />
           </ListItemIcon>
