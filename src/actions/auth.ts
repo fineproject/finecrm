@@ -10,15 +10,15 @@ import { signIn, signOut } from '@/auth'
 export async function authenticate(
   email: string,
   password: string,
-): Promise<{ error?: string }> {
+): Promise<{ ok?: boolean; error?: string }> {
   try {
-    await signIn('credentials', { email, password, redirectTo: '/' })
-    return {}
+    // redirect: false => oturum çerezi kurulur ama yönlendirme istemcide yapılır
+    await signIn('credentials', { email, password, redirect: false })
+    return { ok: true }
   } catch (error) {
     if (error instanceof AuthError) {
       return { error: 'E-posta veya şifre hatalı.' }
     }
-    // Yönlendirme (NEXT_REDIRECT) ve diğer hatalar yukarı fırlatılır
     throw error
   }
 }

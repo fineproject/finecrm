@@ -23,14 +23,15 @@ export default function LoginPage() {
     setError(null)
     setLoading(true)
     try {
-      // Başarılı girişte server action yönlendirme fırlatır (buraya dönmez)
       const res = await authenticate(email, password)
-      if (res?.error) {
+      if (res.error) {
         setError(res.error)
         setLoading(false)
+      } else {
+        // Oturum çerezi kurulduktan sonra tam sayfa yönlendirme (güvenilir)
+        window.location.assign('/')
       }
     } catch {
-      // Yönlendirme dışı beklenmeyen hata
       setError('Giriş sırasında bir hata oluştu.')
       setLoading(false)
     }
