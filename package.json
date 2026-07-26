@@ -4,6 +4,7 @@
   "private": true,
   "description": "Şirket, Proje ve Cari yönetimi için Next.js + MUI + Prisma dashboard",
   "scripts": {
+    "postinstall": "prisma generate",
     "dev": "next dev",
     "build": "prisma generate && next build",
     "start": "next start",
